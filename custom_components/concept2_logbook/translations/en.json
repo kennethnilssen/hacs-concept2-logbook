@@ -34,6 +34,20 @@
       "default": "Successfully authenticated with Concept2 Logbook."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Concept2 Logbook options",
+        "description": "How often to poll the Concept2 API for new results.",
+        "data": {
+          "scan_interval_minutes": "Polling interval (minutes)"
+        }
+      }
+    },
+    "error": {
+      "scan_interval_too_low": "Polling interval must be at least {min_minutes} minutes."
+    }
+  },
   "application_credentials": {
     "description": "To authenticate, first register an application at the [Concept2 API Key portal]({api_key_portal_url}). During registration, set the redirect URI to `{redirect_url}`."
   },

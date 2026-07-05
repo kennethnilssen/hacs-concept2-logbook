@@ -12,6 +12,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.concept2_logbook.api import Concept2ApiClient
 from custom_components.concept2_logbook.const import (
     API_BASE_URL,
+    CONF_SCAN_INTERVAL_MINUTES,
+    DEFAULT_SCAN_INTERVAL_MINUTES,
     DOMAIN,
     EVENT_NEW_RESULT,
 )
@@ -58,6 +60,22 @@ def _make_coordinator(
         oauth_session=FakeOAuthSession(),
     )
     return Concept2Coordinator(hass, entry, client)
+
+
+async def test_coordinator_uses_default_interval_with_no_options(hass):
+    coordinator = _make_coordinator(hass)
+    assert coordinator.update_interval == timedelta(
+        minutes=DEFAULT_SCAN_INTERVAL_MINUTES
+    )
+
+
+async def test_coordinator_uses_configured_interval_from_options(hass):
+    entry = MockConfigEntry(
+        domain=DOMAIN, data={}, options={CONF_SCAN_INTERVAL_MINUTES: 45}
+    )
+    entry.add_to_hass(hass)
+    coordinator = _make_coordinator(hass, entry=entry)
+    assert coordinator.update_interval == timedelta(minutes=45)
 
 
 async def test_first_sync_populates_data_without_firing_event(hass, aioclient_mock):

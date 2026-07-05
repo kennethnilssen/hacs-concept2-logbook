@@ -29,6 +29,7 @@ from .api import (
 )
 from .const import (
     CONF_FULL_HISTORY_SYNC,
+    CONF_SCAN_INTERVAL_MINUTES,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DOMAIN,
     EVENT_NEW_RESULT,
@@ -116,11 +117,14 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
     def __init__(
         self, hass: HomeAssistant, entry: ConfigEntry, client: Concept2ApiClient
     ) -> None:
+        scan_interval_minutes = entry.options.get(
+            CONF_SCAN_INTERVAL_MINUTES, DEFAULT_SCAN_INTERVAL_MINUTES
+        )
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(minutes=DEFAULT_SCAN_INTERVAL_MINUTES),
+            update_interval=timedelta(minutes=scan_interval_minutes),
         )
         self.entry = entry
         self.client = client
@@ -131,6 +135,18 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
         self._initial_sync_done = False
         self._consecutive_failures = 0
         self._backoff_until: datetime | None = None
+
+    @property
+    def diagnostics_data(self) -> dict[str, Any]:
+        """Internal state useful for diagnostics/support (T12)."""
+        return {
+            "last_synced_at": self._last_synced_at,
+            "last_full_sync_at": (
+                self._last_full_sync_at.isoformat() if self._last_full_sync_at else None
+            ),
+            "consecutive_failures": self._consecutive_failures,
+            "result_count": len(self._results),
+        }
 
     async def async_setup(self) -> None:
         """Load the local result store. Call once, before the first refresh."""

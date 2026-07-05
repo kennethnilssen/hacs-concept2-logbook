@@ -14,7 +14,11 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.concept2_logbook.const import API_BASE_URL, DOMAIN
+from custom_components.concept2_logbook.const import (
+    API_BASE_URL,
+    CONF_SCAN_INTERVAL_MINUTES,
+    DOMAIN,
+)
 from custom_components.concept2_logbook.sensor import SENSOR_DESCRIPTIONS
 
 CLIENT_ID = "test-client-id"
@@ -166,3 +170,19 @@ async def test_current_challenge_sensor_exposes_attributes(hass, aioclient_mock)
     assert sensor.state == "July Distance Challenge"
     assert sensor.attributes["end_date"] == "2026-07-31"
     assert sensor.attributes["description"] == "Row as far as you can in July."
+
+
+async def test_changing_options_reloads_with_new_interval(hass, aioclient_mock):
+    """F6: changing the polling interval option reloads the entry to pick it up."""
+    entry = await _setup_entry(hass, aioclient_mock, results=[])
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.update_interval.total_seconds() == 15 * 60
+
+    hass.config_entries.async_update_entry(
+        entry, options={CONF_SCAN_INTERVAL_MINUTES: 45}
+    )
+    await hass.async_block_till_done()
+
+    assert entry.state.value == "loaded"
+    assert entry.runtime_data.update_interval.total_seconds() == 45 * 60

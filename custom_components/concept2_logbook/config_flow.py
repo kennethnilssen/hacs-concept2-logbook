@@ -13,12 +13,25 @@ from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlowResult
+from homeassistant.config_entries import (
+    SOURCE_REAUTH,
+    ConfigEntry,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.core import callback
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import Concept2ApiClient, Concept2ApiError
-from .const import CONF_FULL_HISTORY_SYNC, DOMAIN, OAUTH2_SCOPE_STRING
+from .const import (
+    CONF_FULL_HISTORY_SYNC,
+    CONF_SCAN_INTERVAL_MINUTES,
+    DEFAULT_SCAN_INTERVAL_MINUTES,
+    DOMAIN,
+    MIN_SCAN_INTERVAL_MINUTES,
+    OAUTH2_SCOPE_STRING,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +62,12 @@ class Concept2ConfigFlow(
         super().__init__()
         self._pending_entry_data: dict[str, Any] | None = None
         self._pending_title: str | None = None
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> Concept2OptionsFlow:
+        """Get the options flow for this handler (F6)."""
+        return Concept2OptionsFlow()
 
     @property
     def logger(self) -> logging.Logger:
@@ -128,3 +147,42 @@ class Concept2ConfigFlow(
             CONF_FULL_HISTORY_SYNC: user_input[CONF_FULL_HISTORY_SYNC],
         }
         return self.async_create_entry(title=self._pending_title, data=data)
+
+
+class Concept2OptionsFlow(OptionsFlow):
+    """Options flow for Concept2 Logbook - polling interval only (F6)."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Let the user change the polling interval, enforcing a floor.
+
+        The floor exists to be a good API citizen (C2) - Concept2's own docs
+        currently say the API isn't rate limited, but that may change, and
+        polling too aggressively is exactly the kind of abuse that would
+        trigger it.
+        """
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            try:
+                scan_interval = vol.All(
+                    vol.Coerce(int), vol.Range(min=MIN_SCAN_INTERVAL_MINUTES)
+                )(user_input[CONF_SCAN_INTERVAL_MINUTES])
+            except vol.Invalid:
+                errors["base"] = "scan_interval_too_low"
+            else:
+                return self.async_create_entry(
+                    data={CONF_SCAN_INTERVAL_MINUTES: scan_interval}
+                )
+
+        current = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL_MINUTES, DEFAULT_SCAN_INTERVAL_MINUTES
+        )
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {vol.Required(CONF_SCAN_INTERVAL_MINUTES, default=current): int}
+            ),
+            errors=errors,
+            description_placeholders={"min_minutes": str(MIN_SCAN_INTERVAL_MINUTES)},
+        )

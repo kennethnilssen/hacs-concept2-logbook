@@ -17,6 +17,7 @@ OAUTH2_SCOPE_STRING = ",".join(OAUTH2_SCOPES)
 
 DEFAULT_SCAN_INTERVAL_MINUTES = 15
 MIN_SCAN_INTERVAL_MINUTES = 10
+CONF_SCAN_INTERVAL_MINUTES = "scan_interval_minutes"
 
 # This integration requests no write scopes and implements no write-capable
 # methods, so per Concept2's own docs ("if you are only reading data... you
