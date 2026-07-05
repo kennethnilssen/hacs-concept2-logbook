@@ -39,10 +39,10 @@ doc's Gate 4/5 exit criteria).
 | A02 Cryptographic Failures | TLS-only endpoints; tokens via HA's standard config-entry storage; no secrets in repo, logs, or diagnostics |
 | A03 Injection | No dynamic query construction; all params URL-encoded via aiohttp; API responses validated before use |
 | A04 Insecure Design | Least privilege; polling over inbound webhooks in v1 |
-| A05 Security Misconfiguration | Pinned dependency versions in manifest; CI validation (hassfest, HACS action) |
-| A06 Vulnerable & Outdated Components | Dependency versions pinned; GitHub Dependabot/security alerts enabled; minimum HA core version tracked deliberately |
+| A05 Security Misconfiguration | Pinned dependency versions in manifest; CI validation (hassfest, HACS action); GitHub secret scanning + push protection enabled on the repo |
+| A06 Vulnerable & Outdated Components | Dependency versions pinned; GitHub vulnerability alerts enabled (verified via the GitHub API, not just asserted); minimum HA core version tracked deliberately |
 | A07 Identification & Auth Failures | HA-managed OAuth2 with refresh rotation; reauth flow on revocation |
-| A08 Software & Data Integrity | Signed/tagged GitHub releases; no runtime code download; dependency review |
+| A08 Software & Data Integrity | No runtime code download; dependency review. **No tagged release exists yet** (see README) — tagged/signed GitHub releases are the plan starting at v1.0.0 (Gate 5), not a current fact; until then, installing tracks the `main` branch directly. |
 | A09 Logging & Monitoring Failures | Structured logging with no tokens/PII; diagnostics redaction via HA's `async_redact_data` helper |
 | A10 SSRF | API base URLs are hardcoded constants; no user-supplied URLs are ever fetched |
 
@@ -50,6 +50,6 @@ Full rationale for each row lives in `concept2-ha-integration-design.md` §4.5.
 
 ## Reporting a vulnerability
 
-Please open a private GitHub security advisory on this repository (or, if
-unavailable, open an issue asking for a private contact) rather than a public
-issue. Do not include real tokens, secrets, or personal data in any report.
+Please use this repository's private vulnerability reporting (Security tab →
+"Report a vulnerability") rather than a public issue. Do not include real
+tokens, secrets, or personal data in any report.
