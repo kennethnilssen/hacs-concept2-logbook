@@ -12,3 +12,9 @@ known-first-party = ["custom_components.concept2_logbook"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# Without this, `custom_components` is only importable when invoked as
+# `python -m pytest` (which adds cwd to sys.path as a side effect of `-m`).
+# Plain `pytest` — what CI actually runs — does not, and fails with
+# ModuleNotFoundError. Explicit > implicit: this makes repo root importable
+# regardless of invocation style.
+pythonpath = ["."]
