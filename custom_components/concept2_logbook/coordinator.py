@@ -67,14 +67,23 @@ def _parse_result_date(result: dict[str, Any]) -> date:
 
 
 def _is_valid_result(result: Any) -> bool:
-    """Treat all API responses as untrusted input (C4 / OWASP A03)."""
+    """Treat all API responses as untrusted input (C4 / OWASP A03).
+
+    Checks "date" is a str explicitly (rather than catching TypeError from
+    strptime) so this only ever needs a single exception type - a bare
+    `except (ValueError, TypeError):` reads as a Python-2-era mistake, and
+    at least one ruff version strips its parentheses back out on format,
+    silently reintroducing that look every time the file gets formatted.
+    """
     if not isinstance(result, dict):
         return False
     if "id" not in result or "date" not in result or "distance" not in result:
         return False
+    if not isinstance(result["date"], str):
+        return False
     try:
         _parse_result_date(result)
-    except ValueError, TypeError:
+    except ValueError:
         return False
     return True
 

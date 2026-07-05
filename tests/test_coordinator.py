@@ -47,9 +47,12 @@ def _result(result_id: int, *, date: str, distance: int = 5000) -> dict:
     }
 
 
-def _make_coordinator(hass, entry_data: dict | None = None) -> Concept2Coordinator:
-    entry = MockConfigEntry(domain=DOMAIN, data=entry_data or {})
-    entry.add_to_hass(hass)
+def _make_coordinator(
+    hass, entry_data: dict | None = None, entry: MockConfigEntry | None = None
+) -> Concept2Coordinator:
+    if entry is None:
+        entry = MockConfigEntry(domain=DOMAIN, data=entry_data or {})
+        entry.add_to_hass(hass)
     client = Concept2ApiClient(
         session=async_get_clientsession(hass),
         oauth_session=FakeOAuthSession(),
@@ -292,3 +295,246 @@ async def test_deleted_result_removed_on_reconciliation(hass, aioclient_mock):
 
     assert set(coordinator._results) == {"1"}
     assert data.totals["meters_lifetime"] == 5000
+
+
+async def test_store_round_trip_survives_a_restart(hass, aioclient_mock):
+    """§4.1.1's whole point: state must actually survive a coordinator reload.
+
+    Every other test builds one coordinator and keeps calling it - none of
+    them prove the Store save/load round-trip itself works. This is the one
+    test that does: build coordinator A, sync it, then build a *second*,
+    independent coordinator B against the same config entry (simulating a
+    HA restart) and confirm it restores the same state from disk rather
+    than starting cold.
+    """
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results",
+        json={
+            "data": [_result(1, date="2026-07-01 08:00:00", distance=5000)],
+            "meta": {"pagination": {"total_pages": 1}},
+        },
+    )
+    _mock_challenges(aioclient_mock)
+
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    coordinator_a = _make_coordinator(hass, entry=entry)
+    await coordinator_a.async_setup()
+    await coordinator_a._async_update_data()
+
+    assert coordinator_a._last_synced_at is not None
+    assert coordinator_a._last_full_sync_at is not None
+
+    # A brand-new coordinator instance, same entry_id -> same Store file.
+    coordinator_b = _make_coordinator(hass, entry=entry)
+    assert coordinator_b._results == {}  # cold before async_setup, as expected
+
+    await coordinator_b.async_setup()
+
+    assert coordinator_b._results == coordinator_a._results
+    assert coordinator_b._last_synced_at == coordinator_a._last_synced_at
+    assert coordinator_b._last_full_sync_at == coordinator_a._last_full_sync_at
+
+
+async def test_workout_streak_counts_consecutive_days_and_stops_at_gap(
+    hass, aioclient_mock
+):
+    """Streak logic has never been asserted directly - do it explicitly."""
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results",
+        json={
+            "data": [
+                _result(1, date="2026-07-03 08:00:00"),  # 2 days ago
+                _result(2, date="2026-07-04 08:00:00"),  # yesterday
+                _result(3, date="2026-07-05 08:00:00"),  # today
+                _result(4, date="2026-06-20 08:00:00"),  # older, breaks the streak
+            ],
+            "meta": {"pagination": {"total_pages": 1}},
+        },
+    )
+    _mock_challenges(aioclient_mock)
+    coordinator = _make_coordinator(hass)
+    await coordinator.async_setup()
+
+    data = await coordinator._async_update_data()
+
+    assert data.totals["workout_streak"] == 3
+    assert data.totals["workout_done_today"] is True
+
+
+async def test_challenge_sensors_populate_from_real_data(hass, aioclient_mock):
+    """Every other test mocks challenges as empty - verify the non-empty path too."""
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results",
+        json={"data": [], "meta": {"pagination": {"total_pages": 1}}},
+    )
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/challenges/current",
+        json={
+            "data": [
+                {
+                    "name": "July Distance Challenge",
+                    "end_date": "2026-07-31",
+                    "description": "Row as far as you can in July.",
+                }
+            ]
+        },
+    )
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/challenges/upcoming/30",
+        json={
+            "data": [
+                {
+                    "name": "August Sprint",
+                    "end_date": "2026-08-31",
+                    "description": "Sprint challenge starting in August.",
+                }
+            ]
+        },
+    )
+    coordinator = _make_coordinator(hass)
+    await coordinator.async_setup()
+
+    data = await coordinator._async_update_data()
+
+    assert data.current_challenge["name"] == "July Distance Challenge"
+    assert data.upcoming_challenge["name"] == "August Sprint"
+
+
+async def test_generic_api_error_raises_update_failed_not_a_crash(hass, aioclient_mock):
+    """A plain 403 (not 401/429/5xx) must still surface as UpdateFailed."""
+    aioclient_mock.get(f"{API_BASE_URL}/api/users/me/results", status=403)
+    coordinator = _make_coordinator(hass)
+    await coordinator.async_setup()
+
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()
+
+
+async def test_retry_after_non_numeric_header_falls_back_to_exponential_backoff(
+    hass, aioclient_mock
+):
+    """Retry-After can legally be an HTTP-date, not just seconds - must not crash."""
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results",
+        status=429,
+        headers={"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"},
+    )
+    coordinator = _make_coordinator(hass)
+    await coordinator.async_setup()
+
+    with pytest.raises(UpdateFailed):
+        await coordinator._async_update_data()
+
+    assert coordinator._backoff_until is not None
+
+
+async def test_season_boundary_uses_previous_year_before_may(
+    hass, aioclient_mock, freezer
+):
+    """Concept2 season is May 1 - Apr 30 (CLAUDE.md); the pre-May branch of
+    _season_start had never actually run - every other test's "today" was in
+    July. Freeze "today" to March and confirm the season boundary lands in
+    the *previous* calendar year, and a result from last year's May counts,
+    while one from two seasons ago doesn't.
+    """
+    freezer.move_to("2026-03-15 12:00:00")
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results",
+        json={
+            "data": [
+                _result(1, date="2025-06-01 08:00:00", distance=4000),  # this season
+                _result(2, date="2024-06-01 08:00:00", distance=9000),  # last season
+            ],
+            "meta": {"pagination": {"total_pages": 1}},
+        },
+    )
+    _mock_challenges(aioclient_mock)
+    coordinator = _make_coordinator(hass)
+    await coordinator.async_setup()
+
+    data = await coordinator._async_update_data()
+
+    assert data.totals["meters_this_season"] == 4000
+    assert data.totals["meters_lifetime"] == 13000
+
+
+async def test_streak_is_zero_with_no_recent_workouts(hass, aioclient_mock):
+    """Streak edge case: nothing in the last two days -> streak is 0, not stale."""
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results",
+        json={
+            "data": [_result(1, date="2026-06-01 08:00:00")],
+            "meta": {"pagination": {"total_pages": 1}},
+        },
+    )
+    _mock_challenges(aioclient_mock)
+    coordinator = _make_coordinator(hass)
+    await coordinator.async_setup()
+
+    data = await coordinator._async_update_data()
+
+    assert data.totals["workout_streak"] == 0
+    assert data.totals["workout_done_today"] is False
+
+
+async def test_streak_continues_from_yesterday_if_none_logged_today_yet(
+    hass, aioclient_mock
+):
+    """Haven't rowed yet today - streak should still count from yesterday back."""
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results",
+        json={
+            "data": [
+                _result(1, date="2026-07-03 08:00:00"),  # 2 days ago
+                _result(2, date="2026-07-04 08:00:00"),  # yesterday
+            ],
+            "meta": {"pagination": {"total_pages": 1}},
+        },
+    )
+    _mock_challenges(aioclient_mock)
+    coordinator = _make_coordinator(hass)
+    await coordinator.async_setup()
+
+    data = await coordinator._async_update_data()
+
+    assert data.totals["workout_streak"] == 2
+    assert data.totals["workout_done_today"] is False
+
+
+async def test_non_dict_and_bad_date_results_are_both_skipped(hass, aioclient_mock):
+    """_is_valid_result's other defensive branches: a non-dict item in the
+    results array, a dict with an unparseable date string, and a dict where
+    "date" isn't a string at all.
+    """
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results",
+        json={
+            "data": [
+                "not-a-dict",
+                {"id": 2, "date": "not-a-date", "distance": 1000},
+                {"id": 4, "date": 20260705, "distance": 1000},
+                _result(3, date="2026-07-05 08:00:00"),
+            ],
+            "meta": {"pagination": {"total_pages": 1}},
+        },
+    )
+    _mock_challenges(aioclient_mock)
+    coordinator = _make_coordinator(hass)
+    await coordinator.async_setup()
+
+    data = await coordinator._async_update_data()
+
+    assert set(coordinator._results) == {"3"}
+    assert data.totals["meters_lifetime"] == 5000
+
+
+async def test_due_for_reconciliation_treats_missing_timestamp_as_overdue(hass):
+    """Migration fallback: old stored data without last_full_sync_at at all
+    (predating this field) should be treated as overdue, not crash.
+    """
+    coordinator = _make_coordinator(hass)
+    coordinator._results = {"1": _result(1, date="2026-07-01 08:00:00")}
+    assert coordinator._last_full_sync_at is None
+
+    assert coordinator._due_for_reconciliation() is True

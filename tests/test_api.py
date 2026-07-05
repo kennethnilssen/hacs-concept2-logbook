@@ -61,12 +61,19 @@ async def test_get_results_sends_expected_query_params(hass, aioclient_mock):
     client = _client(hass, FakeOAuthSession())
 
     payload = await client.async_get_results(
-        updated_after="2026-07-01 00:00:00", page=2, number=100
+        updated_after="2026-07-01 00:00:00",
+        page=2,
+        number=100,
+        from_="2026-01-01",
+        to="2026-07-01",
+        type_="rower",
     )
 
     assert payload["meta"]["pagination"]["total"] == 0
     sent_params = aioclient_mock.mock_calls[0][1].query
     assert sent_params["updated_after"] == "2026-07-01 00:00:00"
+    assert sent_params["to"] == "2026-07-01"
+    assert sent_params["type"] == "rower"
     assert sent_params["page"] == "2"
     assert sent_params["number"] == "100"
 
