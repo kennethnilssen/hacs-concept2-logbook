@@ -1,0 +1,19 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+.DS_Store
+*.log
+
+# Never allow real credentials to be committed
+secrets.yaml
+.env
+
+# Personal/local Claude Code settings, not shared project config
+.claude/settings.local.json

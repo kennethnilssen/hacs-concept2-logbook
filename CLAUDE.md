@@ -1,0 +1,62 @@
+# CLAUDE.md — Working Agreement for the Concept2 Logbook HA Integration
+
+## What this project is
+
+A Home Assistant custom integration (distributed via HACS) that connects a user's
+Concept2 Logbook account and exposes workout results as sensors and events.
+The full scope, solution design, and test plan live in
+`concept2-ha-integration-design.md` — **read it before doing anything else.**
+
+## Binding constraints (never violate, never work around)
+
+- **C1 — HACS compliance:** the repository must always satisfy HACS requirements
+  (https://www.hacs.xyz/docs/use/ and the HACS publishing docs).
+- **C2 — Concept2 API compliance:** follow the official API documentation and terms
+  (https://log.concept2.com/developers/documentation/). Develop against the
+  Concept2 development server until production approval is granted.
+- **C3 — Security & least privilege:** OAuth2 Authorization Code flow via Home
+  Assistant's application_credentials + config_entry_oauth2_flow. Scopes:
+  `user:read results:read` only. Tokens live only in HA config entry storage.
+- **C4 — Auditability & OWASP:** code must be reviewable; keep the OWASP mapping in
+  SECURITY.md true; maintain the "built with Claude Code, human-reviewed" attribution
+  in README and SECURITY.md.
+
+If a requested change would conflict with C1–C4, STOP and flag the conflict instead
+of implementing it.
+
+## Process rules
+
+1. **Stage-gate discipline.** The design doc defines Gates 0–5. Do not start work
+   belonging to a later gate while the current gate is open, unless the stakeholder
+   explicitly approves.
+2. **Explore → Plan → Implement → Commit.** For any non-trivial change, present a
+   plan first and wait for approval. The stakeholder reviews all diffs
+   (Ask-permissions mode).
+3. **Tests travel with code.** Every functional change includes or updates pytest
+   coverage. CI (ruff + hassfest + HACS validation + pytest) must stay green.
+4. **Small commits, conventional-commit messages** (`feat:`, `fix:`, `test:`,
+   `docs:`, `ci:`) so the audit trail stays readable.
+5. **The stakeholder is learning Claude Code.** Explain what you're doing and why in
+   plain language as you go. Prefer teaching over speed.
+
+## Security rules (hard)
+
+- Never log, print, or commit tokens, client secrets, e-mail addresses, or other PII.
+- Diagnostics exports must redact identifiers.
+- Treat all API responses as untrusted input: validate before use.
+- API base URLs are constants; never fetch user-supplied URLs.
+- No runtime code download. Pin dependency versions in manifest.json.
+
+## Technical conventions
+
+- Domain: `concept2_logbook`. Display name: "Concept2 Logbook". License: MIT.
+- Tagline (manifest/README): "This integration connects Concept2 Logbook to Home
+  Assistant over API using the official Concept2 API protocol."
+- Repo visibility: private until Gate 4, then public.
+- Async only; use HA's shared aiohttp session; DataUpdateCoordinator +
+  CoordinatorEntity patterns; config entries only (no YAML setup).
+- Time values from the API are tenths of seconds — convert. Concept2 seasons run
+  May 1 – April 30. Week aggregates use ISO weeks.
+- Initial full-history sync must not fire `concept2_new_result` events.
+- Repository layout, sensor list, and test cases: see the design doc §4.4, §3.1 F3,
+  and §6 — they are the specification.
