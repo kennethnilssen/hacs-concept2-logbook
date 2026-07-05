@@ -199,11 +199,28 @@ last-workout sensor. See new test T15 in §6.1.
   exponential backoff on HTTP 429/5xx (honoring a `Retry-After` header when present)
   before raising `UpdateFailed`; this is custom code, not a framework freebie, and
   needs its own test coverage (T07).
-- **Dev/production base URL (resolves the ambiguity flagged before Gate 2 review):**
-  `API_BASE_URL` is a single hardcoded constant in `const.py`, never a user- or
-  config-flow-supplied value (required by A10 — no user-supplied URLs are ever
-  fetched). Moving from dev to production after Concept2's approval is a deliberate
-  one-line code change + tagged release, never a runtime option or hidden setting.
+- **Dev/production base URL (resolved at Gate 3 step 2, 2026-07-05 — supersedes
+  the Gate 2 review note above):** `API_BASE_URL` is a single hardcoded constant in
+  `const.py`, never a user- or config-flow-supplied value (required by A10 — no
+  user-supplied URLs are ever fetched). Verified directly against Concept2's docs:
+  "If you are only reading data from the Logbook, you can develop against
+  production. If you are writing data to the Logbook, before using the live API,
+  you must first develop against the development server." Since this integration
+  requests no write scopes and `api.py` implements no write-capable methods,
+  `API_BASE_URL` defaults to **production** (`https://log.concept2.com`), not the
+  dev server — this is what Concept2's own terms require for a read-only client,
+  not a relaxation of C2. `https://log-dev.concept2.com` stays defined as a
+  separate constant, unused by default. See `CLAUDE.md` C2 for the recorded
+  decision.
+- **Scope must never be omitted from a token request (found verifying docs for
+  step 2 — critical for C3):** Concept2's docs state that if `scope` is omitted
+  from a `/oauth/access_token` call — including a **refresh** call — it silently
+  defaults to `user:read,results:write`, i.e. write access. Home Assistant's
+  default OAuth2 implementation does not resend `scope` on refresh automatically.
+  Build step 3 (`application_credentials.py`) must override the token request to
+  always explicitly attach `scope=user:read,results:read`, on both the initial
+  exchange and every refresh, with a dedicated regression test — never rely on
+  the default.
 
 ### 4.4 Repository structure (C1)
 

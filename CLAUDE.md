@@ -12,8 +12,15 @@ The full scope, solution design, and test plan live in
 - **C1 — HACS compliance:** the repository must always satisfy HACS requirements
   (https://www.hacs.xyz/docs/use/ and the HACS publishing docs).
 - **C2 — Concept2 API compliance:** follow the official API documentation and terms
-  (https://log.concept2.com/developers/documentation/). Develop against the
-  Concept2 development server until production approval is granted.
+  (https://log.concept2.com/developers/documentation/). **Updated 2026-07-05:**
+  Concept2's docs state, verbatim, "If you are only reading data from the Logbook,
+  you can develop against production. If you are writing data to the Logbook,
+  before using the live API, you must first develop against the development
+  server." This integration requests no write scopes and implements no
+  write-capable methods (v1 is read-only by design, C3) — so per Concept2's own
+  terms, `API_BASE_URL` defaults to **production** (`https://log.concept2.com`),
+  not the dev server. `https://log-dev.concept2.com` remains available as a
+  separate constant for throwaway testing if ever needed, but is not the default.
 - **C3 — Security & least privilege:** OAuth2 Authorization Code flow via Home
   Assistant's application_credentials + config_entry_oauth2_flow. Scopes:
   `user:read results:read` only. Tokens live only in HA config entry storage.
