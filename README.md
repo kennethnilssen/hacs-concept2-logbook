@@ -120,6 +120,8 @@ happens.
 - Workout dates are assumed to be in Home Assistant's local timezone (Concept2's API
   doesn't reliably return one).
 - Not yet submitted to the HACS default store — install as a custom repository (above).
+- The integration icon (`custom_components/concept2_logbook/brand/icon.png`) is a
+  plain placeholder, not a designed logo — nobody's done branding work on this yet.
 
 ## Security
 

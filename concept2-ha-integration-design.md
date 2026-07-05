@@ -303,12 +303,18 @@ endpoint returning 404 for private repos, not a real defect in our code
 (confirmed by re-running all 9 historical validation runs after
 going public 2026-07-05: every one dropped to exactly 1/9 failing -
 `hacsjson` and `integration_manifest` now pass). The one remaining failure,
-`brands`, is confirmed via hacs.xyz's own docs to apply only to default-store
-submissions, not custom repositories - v1.0 ships as a custom repository
-(§3.2); default-store submission is an explicit v1.x milestone. `ignore:
-brands` was added to `hacs.yml` to reflect this deliberately, not to
-suppress a real failure. F1-F6 all implemented and tested (§6.1); zero
-TODO/FIXME/XXX in any source file (verified by grep across the full tree).
+`brands`, was initially (and incorrectly) assumed to only apply to
+default-store submissions, based on an AI-summarized doc read rather than
+the actual validator source - **corrected 2026-07-05** after reading
+`hacs/integration`'s `custom_components/hacs/validate/brands.py` directly:
+the check runs unconditionally for any `integration`-category repository,
+custom or default-store. Fixed properly instead of excused: added a local
+`custom_components/concept2_logbook/brand/icon.png` (a plain placeholder,
+not a designed logo - see README) which the validator accepts as one of its
+two valid paths (the other being a domain listing in
+home-assistant/brands). `ignore: brands` removed from `hacs.yml`
+accordingly. F1-F6 all implemented and tested (§6.1); zero TODO/FIXME/XXX
+in any source file (verified by grep across the full tree).
 
 ---
 

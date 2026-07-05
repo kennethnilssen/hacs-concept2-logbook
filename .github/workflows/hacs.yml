@@ -7,6 +7,9 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -15,10 +18,7 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # brands (a brand icon submitted to home-assistant/brands) is
-          # only required for HACS *default store* inclusion, not for a
-          # custom repository (verified against hacs.xyz/docs/publish/include).
-          # v1.0 ships as a custom repository; default-store submission is
-          # an explicit v1.x milestone (design doc §3.2), so this is a
-          # deliberate, documented exclusion - not a suppressed real failure.
-          ignore: brands
+          # We don't rely on the PR-comment feature (no external PR-based
+          # workflow yet), so explicitly turn it off rather than grant
+          # pull-requests: write just to keep an unused nice-to-have.
+          comment: false
