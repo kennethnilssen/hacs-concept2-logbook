@@ -2,6 +2,8 @@
 
 ## Origin and review
 
+**Built with Claude Code, human-reviewed, security-focused.**
+
 This integration was built with [Claude Code](https://claude.com/claude-code)
 (Anthropic) under a documented working agreement (`CLAUDE.md`) and design doc
 (`concept2-ha-integration-design.md`), with human review at every stage-gate
