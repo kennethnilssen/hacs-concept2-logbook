@@ -29,6 +29,13 @@ API_BASE_URL_DEV = "https://log-dev.concept2.com"
 
 OAUTH2_AUTHORIZE_PATH = "/oauth/authorize"
 OAUTH2_TOKEN_PATH = "/oauth/access_token"
+OAUTH2_AUTHORIZE_URL = f"{API_BASE_URL}{OAUTH2_AUTHORIZE_PATH}"
+OAUTH2_TOKEN_URL = f"{API_BASE_URL}{OAUTH2_TOKEN_PATH}"
+
+# Where a user registers their own OAuth client (verified 2026-07-05 - the
+# docs link this exact path as "API Key portal"). Shown to the user in the
+# Application Credentials dialog; never fetched by code (A10).
+API_KEY_PORTAL_URL = f"{API_BASE_URL}/developers/keys"
 
 USER_PATH = "/api/users/{user}"
 RESULTS_PATH = "/api/users/{user}/results"
