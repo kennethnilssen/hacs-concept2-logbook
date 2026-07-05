@@ -38,6 +38,24 @@ class Concept2AuthError(Concept2ApiError):
 class Concept2RateLimitedError(Concept2ApiError):
     """Raised on HTTP 429."""
 
+    def __init__(self, message: str, *, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class Concept2ServerError(Concept2ApiError):
+    """Raised on HTTP 5xx - the coordinator backs off on this too (design doc §4.3)."""
+
+
+def _parse_retry_after(value: str | None) -> float | None:
+    """Parse a Retry-After header value (seconds form only; ignore HTTP-date form)."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
 
 class Concept2ApiClient:
     """Thin wrapper around the Concept2 Logbook API."""
@@ -83,7 +101,14 @@ class Concept2ApiClient:
             if response.status == 401:
                 raise Concept2AuthError(f"Concept2 API returned 401 for {path}")
             if response.status == 429:
-                raise Concept2RateLimitedError(f"Concept2 API returned 429 for {path}")
+                retry_after = _parse_retry_after(response.headers.get("Retry-After"))
+                raise Concept2RateLimitedError(
+                    f"Concept2 API returned 429 for {path}", retry_after=retry_after
+                )
+            if response.status >= 500:
+                raise Concept2ServerError(
+                    f"Concept2 API returned {response.status} for {path}"
+                )
             try:
                 response.raise_for_status()
             except ClientResponseError as err:

@@ -12,12 +12,13 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import voluptuous as vol
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlowResult
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import Concept2ApiClient, Concept2ApiError
-from .const import DOMAIN, OAUTH2_SCOPE_STRING
+from .const import CONF_FULL_HISTORY_SYNC, DOMAIN, OAUTH2_SCOPE_STRING
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,6 +44,11 @@ class Concept2ConfigFlow(
     """Config flow for Concept2 Logbook."""
 
     DOMAIN = DOMAIN
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._pending_entry_data: dict[str, Any] | None = None
+        self._pending_title: str | None = None
 
     @property
     def logger(self) -> logging.Logger:
@@ -94,5 +100,31 @@ class Concept2ConfigFlow(
             )
 
         self._abort_if_unique_id_configured()
-        title = user.get("username") or user_id
-        return self.async_create_entry(title=title, data=data)
+        self._pending_entry_data = data
+        self._pending_title = user.get("username") or user_id
+        return await self.async_step_full_history_sync()
+
+    async def async_step_full_history_sync(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask whether to do a full paginated history sync (F3).
+
+        Opting in fetches the user's entire Concept2 history (paginated) on
+        first setup, for accurate lifetime totals immediately. Opting out
+        only fetches the most recent results; lifetime/season totals then
+        start from whenever the integration was installed and grow from
+        there - a documented v1 limitation, not a bug.
+        """
+        if user_input is None:
+            return self.async_show_form(
+                step_id="full_history_sync",
+                data_schema=vol.Schema(
+                    {vol.Required(CONF_FULL_HISTORY_SYNC, default=False): bool}
+                ),
+            )
+
+        data = {
+            **self._pending_entry_data,
+            CONF_FULL_HISTORY_SYNC: user_input[CONF_FULL_HISTORY_SYNC],
+        }
+        return self.async_create_entry(title=self._pending_title, data=data)

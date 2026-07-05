@@ -49,3 +49,32 @@ API_VERSION_HEADER = "application/vnd.c2logbook.v1+json"
 
 DEFAULT_RESULTS_PAGE_SIZE = 50
 MAX_RESULTS_PAGE_SIZE = 250
+
+# Whether the user opted into a full paginated history sync on first setup
+# (F3) - captured as a config-flow step in build step 4, since it depends on
+# the coordinator that didn't exist yet in step 3.
+CONF_FULL_HISTORY_SYNC = "full_history_sync"
+
+EVENT_NEW_RESULT = "concept2_new_result"
+
+STORAGE_VERSION = 1
+
+# Concept2's polling API has no "deleted ids" feed (only its webhook does,
+# out of scope for v1) - detecting a delete means periodically re-fetching
+# and diffing against the local store (§4.1.1). Bounded to the date range
+# already known locally, so this never silently expands scope beyond
+# whatever the user already opted into via CONF_FULL_HISTORY_SYNC.
+FULL_RESYNC_INTERVAL_HOURS = 24
+
+# Defensive cap on pages walked in one sync - total_pages from the API is
+# authoritative; this only guards against a pathological/buggy response
+# (C4 - treat all API responses as untrusted input).
+MAX_FULL_SYNC_PAGES = 100
+
+# Concept2 season: May 1 - April 30 (CLAUDE.md technical conventions).
+SEASON_START_MONTH = 5
+SEASON_START_DAY = 1
+
+# A deliberately simple v1 definition of "round-number lifetime milestone"
+# for the concept2_new_result event's extras (F4) - every 100km crossed.
+LIFETIME_MILESTONE_METERS = 100_000

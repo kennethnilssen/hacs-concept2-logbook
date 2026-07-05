@@ -8,6 +8,13 @@
       "reauth_confirm": {
         "title": "Reauthenticate Concept2 Logbook",
         "description": "The connection to your Concept2 Logbook account needs to be renewed."
+      },
+      "full_history_sync": {
+        "title": "Sync workout history",
+        "description": "Sync your complete Concept2 workout history now? This gives accurate lifetime totals immediately, but may take longer on first setup if you have a long history. If you say no, lifetime/season totals start from today and grow over time instead.",
+        "data": {
+          "full_history_sync": "Sync full history now"
+        }
       }
     },
     "abort": {
@@ -29,5 +36,31 @@
   },
   "application_credentials": {
     "description": "To authenticate, first register an application at the [Concept2 API Key portal]({api_key_portal_url}). During registration, set the redirect URI to `{redirect_url}`."
+  },
+  "entity": {
+    "sensor": {
+      "last_workout_distance": { "name": "Last workout distance" },
+      "last_workout_time": { "name": "Last workout time" },
+      "last_workout_average_pace": { "name": "Last workout average pace" },
+      "last_workout_stroke_rate": { "name": "Last workout stroke rate" },
+      "last_workout_calories": { "name": "Last workout calories" },
+      "last_workout_average_heart_rate": { "name": "Last workout average heart rate" },
+      "last_workout_drag_factor": { "name": "Last workout drag factor" },
+      "last_workout_date": { "name": "Last workout date" },
+      "meters_today": { "name": "Meters today" },
+      "meters_this_week": { "name": "Meters this week" },
+      "meters_this_month": { "name": "Meters this month" },
+      "meters_this_season": { "name": "Meters this season" },
+      "meters_lifetime": { "name": "Meters lifetime" },
+      "workouts_this_week": { "name": "Workouts this week" },
+      "workouts_this_month": { "name": "Workouts this month" },
+      "calories_this_month": { "name": "Calories this month" },
+      "workout_streak": { "name": "Workout streak" },
+      "current_challenge": { "name": "Current challenge" },
+      "upcoming_challenge": { "name": "Upcoming challenge" }
+    },
+    "binary_sensor": {
+      "workout_done_today": { "name": "Workout done today" }
+    }
   }
 }

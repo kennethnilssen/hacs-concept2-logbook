@@ -63,17 +63,55 @@ async def test_full_flow_creates_entry(
     )
 
     result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "full_history_sync"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"full_history_sync": True}
+    )
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == "test-user"
 
     entry = result["result"]
     assert entry.unique_id == "1"
     assert entry.data["token"]["access_token"] == "mock-access-token"
+    assert entry.data["full_history_sync"] is True
 
     # The token request must always include our least-privilege scope,
     # never leaving it to the default implementation's behavior (C3).
     token_request = aioclient_mock.mock_calls[-2]
     assert token_request[2]["scope"] == "user:read,results:read"
+
+
+async def test_full_flow_can_decline_history_sync(
+    hass, hass_client_no_auth, aioclient_mock, current_request_with_host
+):
+    """Declining full history sync is stored as False, not skipped entirely."""
+    result = await _start_flow(hass)
+    state = result["url"].split("state=")[1].split("&")[0]
+    client = await hass_client_no_auth()
+    await client.get(f"/auth/external/callback?code=abcd&state={state}")
+
+    aioclient_mock.post(
+        OAUTH2_TOKEN_URL,
+        json={
+            "access_token": "mock-access-token",
+            "refresh_token": "mock-refresh-token",
+            "token_type": "Bearer",
+            "expires_in": 604800,
+        },
+    )
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me",
+        json={"data": {"id": 1, "username": "test-user"}},
+    )
+
+    result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"full_history_sync": False}
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["result"].data["full_history_sync"] is False
 
 
 async def test_flow_aborts_if_profile_fetch_fails(
