@@ -59,7 +59,8 @@ of implementing it.
 - Domain: `concept2_logbook`. Display name: "Concept2 Logbook". License: MIT.
 - Tagline (manifest/README): "This integration connects Concept2 Logbook to Home
   Assistant over API using the official Concept2 API protocol."
-- Repo visibility: private until Gate 4, then public.
+- Repo visibility: public since 2026-07-05 (was private through Gate 3's
+  build steps; see design doc D4 for why it went public ahead of Gate 4).
 - Async only; use HA's shared aiohttp session; DataUpdateCoordinator +
   CoordinatorEntity patterns; config entries only (no YAML setup).
 - Time values from the API are tenths of seconds — convert. Concept2 seasons run

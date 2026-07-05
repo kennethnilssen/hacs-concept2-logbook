@@ -295,6 +295,21 @@ Executed in Claude Code, in this order:
 **Gate 3 exit criteria:** CI green (lint + hassfest + HACS validation + unit tests);
 all v1 functional requirements implemented; no TODOs in security-relevant code.
 
+**Status: met, 2026-07-05.** All four CI checks pass on the current commit
+(steps 1-5 complete; step 6 is docs-only, no code). One note on "HACS
+validation green": while the repo was private (D4), 3-5 of 9 HACS checks
+failed per push - verified via `curl` that this was GitHub's raw-content
+endpoint returning 404 for private repos, not a real defect in our code
+(confirmed by re-running all 9 historical validation runs after
+going public 2026-07-05: every one dropped to exactly 1/9 failing -
+`hacsjson` and `integration_manifest` now pass). The one remaining failure,
+`brands`, is confirmed via hacs.xyz's own docs to apply only to default-store
+submissions, not custom repositories - v1.0 ships as a custom repository
+(§3.2); default-store submission is an explicit v1.x milestone. `ignore:
+brands` was added to `hacs.yml` to reflect this deliberately, not to
+suppress a real failure. F1-F6 all implemented and tested (§6.1); zero
+TODO/FIXME/XXX in any source file (verified by grep across the full tree).
+
 ---
 
 ## 6. Test & Verification (Gate 4)
@@ -391,6 +406,6 @@ These become the project's `CLAUDE.md` working agreement:
 | D1 | Final sensor list | **CLOSED 2026-07-05** — sensor set per §3.1 F3; PBs and per-split sensors deferred to v1.1 | — |
 | D2 | Integration domain + display name | `concept2_logbook` vs `concept2`; display name/tagline | **CLOSED 2026-07-05** — domain: `concept2_logbook`; display name: "Concept2 Logbook"; tagline: "This integration connects Concept2 Logbook to Home Assistant over API using the official Concept2 API protocol." |
 | D3 | License | MIT vs Apache-2.0 | **CLOSED 2026-07-05** — MIT |
-| D4 | Repo visibility during build | Private until Gate 4, then public | **CLOSED 2026-07-05** — Private until Gate 4, then public |
+| D4 | Repo visibility during build | Private until Gate 4, then public | **CLOSED 2026-07-05** — private through Gate 3's build steps; made public 2026-07-05 on stakeholder instruction, ahead of Gate 4's manual acceptance testing (A01-A06), specifically to unblock full HACS validation (see Gate 3 exit criteria note above). Gate 4 itself is not yet started. |
 
 **Gate 1 exit criteria met 2026-07-05** — scope, sensor list (D1), domain/naming (D2), license (D3), and repo visibility (D4) all signed off. Gate 1 closed.

@@ -15,5 +15,5 @@ venv/
 secrets.yaml
 .env
 
-# Personal/local Claude Code settings, not shared project config
-.claude/settings.local.json
+# Local Claude Code session state - not shared project config
+.claude/
