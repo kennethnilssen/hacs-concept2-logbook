@@ -3,19 +3,29 @@
 All notable changes to this project are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-No version has been tagged/released yet — see the README's
-["No releases yet"](README.md#no-releases-yet) note. Everything below is unreleased,
-built but not yet manually verified against a real Home Assistant instance or a real
-Concept2 account (the project's own "Gate 4").
-
 ## [Unreleased]
+
+Nothing yet.
+
+## [0.2.0-alpha] - 2026-07-11
+
+Tagged specifically to fix HACS's commit-based update delivery, which was
+requesting a GitHub archive URL shaped for branch names against a commit SHA
+and reliably 404'ing (confirmed against a real test instance's logs). **Not**
+a "manual testing is done" release - Gate 4 acceptance testing is still in
+progress, not complete; see the warning in README.md.
 
 ### Added
 
-- OAuth2 Authorization Code config flow via Home Assistant's Application
-  Credentials, with reauth on token expiry/revocation.
+- Personal access token config flow (D5) — generate a token at your Concept2
+  profile (Edit Profile → Applications → Concept2 Logbook API) and paste it
+  in. Replaces an earlier OAuth2 Authorization Code design (built, then
+  superseded before this tag - see the design doc's §4.2/D5 for why).
+  Reauth on token revocation/expiry, `wrong_account` protection if a second
+  entry is authenticated with a different Concept2 account's token.
 - Thin async Concept2 API client (results, user profile, challenges) — read-only,
-  no write-capable methods exist in the code.
+  no write-capable methods exist in the code. Wraps aiohttp connection/timeout
+  failures into a typed error so `cannot_connect` means what it says.
 - `DataUpdateCoordinator` with a local result store so aggregate totals recompute
   correctly when a historical result is edited or deleted upstream, and custom
   exponential backoff on HTTP 429/5xx (not provided by the coordinator base class).
@@ -32,6 +42,9 @@ Concept2 account (the project's own "Gate 4").
 - Diagnostics export with token/identifier redaction via Home Assistant's own
   `async_redact_data` helper.
 - Full English translations for the config flow, options flow, and all entities.
+- CI/security hardening: 100% test coverage, CodeQL code scanning, GitHub
+  secret scanning + push protection, Dependabot security updates, private
+  vulnerability reporting, least-privilege permissions on every workflow.
 
 ### Known limitations
 
@@ -39,10 +52,16 @@ Concept2 account (the project's own "Gate 4").
   real-time) — Concept2's polling API has no "deleted items" feed.
 - Workout dates are assumed to be in Home Assistant's local timezone.
 - Not submitted to the HACS default store yet (custom-repository install only).
+- A personal access token's scope is set by Concept2's own page at generation
+  time and cannot be inspected or restricted by this integration's code - a
+  narrower guarantee than the OAuth2 design it replaced (see SECURITY.md).
+- Integration icon is a plain placeholder, not a designed logo.
 
 ### Not yet done
 
-- Manual acceptance testing on a real Home Assistant instance / real Concept2
-  account (Gate 4).
-- Screenshots (need a real running instance to capture honestly — see README).
-- A tagged release (Gate 5).
+- Full manual acceptance testing on a real Home Assistant instance / real
+  Concept2 account, including a real workout triggering `concept2_new_result`
+  (Gate 4) - config-flow authorization has been confirmed working, but totals
+  accumulating over time and the event firing have not.
+- Screenshots.
+- HACS default-store submission, a non-placeholder icon, a v1.0.0 release (Gate 5).

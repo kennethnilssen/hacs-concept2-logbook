@@ -14,18 +14,21 @@ over the official Concept2 API, and exposes your workout results as sensors and 
 automation event. Read-only — it never writes anything back to your Concept2 account.
 
 > [!WARNING]
-> **Untested and AI-written. Read this before installing.**
+> **AI-written, testing in progress. Read this before installing.**
 > This integration was built end-to-end by [Claude Code](https://claude.com/claude-code)
-> (an AI coding agent) under human supervision — every line was reviewed, but it has
-> **not yet been run against a real Home Assistant instance or a real Concept2
-> account**. It's unit-tested (100% line coverage, CI green — see badges above),
-> but unit tests mock the API; nobody has actually authorized it, watched a real
-> sensor populate, or rowed a workout and seen the event fire. That manual
-> verification (the project's own "Gate 4") hasn't happened yet.
+> (an AI coding agent) under human supervision — every line was reviewed. It's
+> unit-tested (100% line coverage, CI green — see badges above), and the config
+> flow (personal access token authorization) has been confirmed working against
+> a real Home Assistant instance and a real Concept2 account. Full manual
+> acceptance testing - a workout actually appearing, the event firing, totals
+> accumulating over time - (the project's own "Gate 4") is still in progress,
+> not complete.
 >
-> There are also **no tagged releases yet** — see [No releases yet](#no-releases-yet)
-> below before you install. Use at your own risk, expect rough edges, and please
-> [open an issue](../../issues) if something breaks.
+> There's a [pre-release](../../releases) (`v0.2.0-alpha`) so HACS can deliver
+> updates at all - see [Pre-release only](#pre-release-only---not-a-testing-is-done-signal)
+> below before you install. This is **not** a "testing is done" v1.0.0. Use at
+> your own risk, expect rough edges, and please [open an issue](../../issues)
+> if something breaks.
 
 ## What this is
 
@@ -62,14 +65,15 @@ automation event. Read-only — it never writes anything back to your Concept2 a
 
 ## Installation
 
-### No releases yet
+### Pre-release only - not a "testing is done" signal
 
-This repository doesn't have a tagged release (that happens at the project's "Gate
-5", after manual testing). Until then, HACS will install directly from the `main`
-branch — effectively the latest commit, not a stable pinned version. It can change
-or break between the time you install it and the time you next update it. If you'd
-rather wait for a tagged `v1.0.0`, [watch the repo](../../subscription) or check the
-[Releases page](../../releases) before installing.
+[`v0.2.0-alpha`](../../releases) exists purely so HACS can actually deliver
+updates — without any tag, HACS was requesting a GitHub archive URL shaped for
+branch names against a commit SHA, which reliably 404'd (confirmed against a
+real test instance's logs, not assumed). It is **not** a v1.0.0 "manual testing
+is done" release — that's still Gate 5, after Gate 4's manual acceptance
+testing, which hasn't happened yet (see the warning at the top). Expect more
+pre-releases as testing continues before an eventual `v1.0.0`.
 
 ### Via HACS (recommended)
 
@@ -116,11 +120,11 @@ polling interval (minimum 10 minutes, to stay a good citizen of Concept2's API).
 
 ## Screenshots
 
-None yet, honestly — screenshots would need a real running Home Assistant instance
-with a real Concept2 account authorized against it, which hasn't happened yet (see
-the warning at the top). Adding fake/mocked-up screenshots here would be more
-misleading than having none. Real ones will replace this section once manual testing
-happens.
+None yet, honestly — the config flow has now run against a real instance and
+account, but nobody's captured screenshots of it yet, and sensors haven't
+populated with real workout data (see the warning at the top). Adding
+fake/mocked-up screenshots here would be more misleading than having none.
+Real ones will replace this section as manual testing continues.
 
 ## Known v1 limitations
 
