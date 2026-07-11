@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="custom_components/concept2_logbook/brand/icon.png" width="96" height="96" alt="Concept2 Logbook icon (plain placeholder, not a designed logo)">
+</p>
+
 # Concept2 Logbook — Home Assistant Integration
 
 [![Test](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/test.yml/badge.svg)](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/test.yml)
@@ -46,12 +50,13 @@ automation event. Read-only — it never writes anything back to your Concept2 a
 ## Requirements
 
 - A Concept2 Logbook account.
-- Your **own** Concept2 API client — Concept2 requires every application to register
-  its own OAuth client (no shared/default credentials are bundled with this
-  integration, by design — see [SECURITY.md](SECURITY.md)). Register one at the
-  [Concept2 API Key portal](https://log.concept2.com/developers/keys); this is free
-  and takes a couple of minutes. The integration's setup screen tells you exactly
-  what redirect URI to enter.
+- Your **own** personal access token, generated in a few clicks at
+  **log.concept2.com → Profile → Edit Profile → Applications → Concept2 Logbook API**.
+  No app registration, no client ID/secret, no redirect URI to configure — it's a
+  single token string. It stays valid until you revoke it on that same page. (This
+  integration is strictly read-only; per Concept2's own docs, personal-use apps that
+  only read data are meant to use this token rather than register a full OAuth
+  client, which is the path for apps distributed to multiple users.)
 - [HACS](https://hacs.xyz) installed (recommended), or willingness to copy files in
   manually.
 
@@ -76,13 +81,18 @@ rather wait for a tagged `v1.0.0`, [watch the repo](../../subscription) or check
 5. Restart Home Assistant.
 6. Go to **Settings → Devices & Services → Add Integration**, search for
    **Concept2 Logbook**.
-7. The setup screen will tell you where to register your API client and what
-   redirect URI to use (see [Requirements](#requirements) above). Enter your client
-   ID/secret under **Settings → Application Credentials** when prompted, then
-   authorize with your Concept2 account.
+7. Generate a personal access token at
+   **log.concept2.com → Profile → Edit Profile → Applications → Concept2 Logbook API**
+   (see [Requirements](#requirements) above), then paste it into the setup form.
 8. You'll be asked whether to sync your full workout history now (accurate lifetime
    totals immediately, but slower on first setup) or start fresh from today (totals
    grow over time instead).
+
+### Revoking access
+
+Go back to **log.concept2.com → Profile → Edit Profile → Applications** and revoke
+the token there at any time. Home Assistant will detect this on its next poll and
+prompt you to reauthenticate (paste a new token) rather than fail silently.
 
 ### Manual (without HACS)
 
@@ -125,12 +135,16 @@ happens.
 
 ## Security
 
-- OAuth2 Authorization Code flow via Home Assistant's Application Credentials — you
-  authorize with your own Concept2 account and can revoke access at any time from
-  Concept2 Settings → Applications.
-- Requests only `user:read results:read` scopes — nothing else.
+- Personal access token authentication (D5) — you generate your own token at your
+  Concept2 profile and can revoke it at any time from that same page.
+- Read-only: no write scopes requested, no code path capable of writing to Concept2.
+  Talks to the production Concept2 API directly — per Concept2's own docs, read-only
+  personal-use apps aren't required to develop against a separate dev server.
 - No credentials are ever stored in this repository or logged.
-- See [SECURITY.md](SECURITY.md) for the full threat model and OWASP alignment.
+- **One honest limitation:** unlike a full OAuth2 client registration, this
+  integration cannot see or restrict what scope your personal token actually carries
+  — that's set by Concept2's own page when you generate it, not by this integration's
+  code. See [SECURITY.md](SECURITY.md) for the full threat model and OWASP alignment.
 
 ## Attribution
 

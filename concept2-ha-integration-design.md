@@ -157,6 +157,15 @@ last-workout sensor. See new test T15 in §6.1.
 
 ### 4.2 Authentication design (C3)
 
+**SUPERSEDED 2026-07-11 by D5** — v1.0 uses a Concept2 personal access token
+instead of the OAuth2 design below. Kept here as historical record, not deleted:
+the OAuth2 design was fully built (Gate 3 step 3) and worked, but the stakeholder
+confirmed via their own account that Concept2's "API Key portal" client
+registration is the app-developer path for multi-user distribution, not what an
+individual sees on their own profile - the personal access token is what
+Concept2 actually intends here. See §4.2.1 below for the current design, and D5
+in §9 for the full rationale and the accepted scope-visibility tradeoff.
+
 - OAuth2 Authorization Code flow using Home Assistant's built-in
   `config_entry_oauth2_flow` and **Application Credentials** platform.
 - Scopes requested: `user:read results:read` — nothing more (least privilege).
@@ -185,6 +194,37 @@ last-workout sensor. See new test T15 in §6.1.
   Credentials, never exposed to a browser/public client. PKCE exists to protect public
   clients that can't hold a secret; adding it here would be complexity without a
   matching threat. Revisit only if Concept2's API documentation mandates it.
+
+#### 4.2.1 Current design: personal access token (D5, 2026-07-11)
+
+- Plain `ConfigFlow` (not `AbstractOAuth2FlowHandler`), single password-masked
+  field (`TextSelector`, `type: password`) for a Concept2 personal access token.
+- User generates the token themselves at Concept2 profile → Edit Profile →
+  Applications → Concept2 Logbook API - no client registration, no redirect URI,
+  no Application Credentials platform involved at all.
+- Validated by calling `GET /api/users/me` with the token as a Bearer header;
+  `Concept2AuthError` (401) → `invalid_auth`, any other `Concept2ApiError`
+  (including wrapped network/timeout failures, see below) → `cannot_connect`,
+  anything unexpected → `unknown` (logged server-side via `_LOGGER.exception`,
+  never shown raw to the user).
+- Unique ID is the Concept2 user id returned by that call, exactly as before -
+  reauth still matches entries correctly, `wrong_account` still guards against
+  authenticating a second entry with a different Concept2 account's token.
+- **Found while implementing, not anticipated in the brief:** `api.py` never
+  actually caught raw `aiohttp` connection/timeout failures - they would have
+  bubbled up unwrapped and landed in the config flow's generic `except
+  Exception` → `unknown`, not `cannot_connect` as intended. Fixed by wrapping
+  the request in `api.py` itself (`ClientError`/`TimeoutError` → `Concept2ApiError`),
+  so `cannot_connect` means what it says regardless of caller.
+- **Accepted tradeoff (see §2 C3 and SECURITY.md):** the token's scope is set by
+  Concept2's own page at generation time and cannot be inspected, restricted, or
+  verified by this integration's code - unlike the OAuth2 design above, which
+  forced `user:read,results:read` explicitly on every token request. This
+  integration still only ever issues GET requests (no write-capable method
+  exists anywhere in `api.py`), so it cannot itself write to Concept2 regardless
+  of the token's actual scope, but this is a narrower guarantee than the OAuth2
+  design provided and is documented as such rather than presented as equivalent.
+- Options flow (polling interval, F6) is unchanged - it never touched auth.
 
 ### 4.3 Data flow & API citizenship (C2)
 
@@ -252,14 +292,14 @@ Mapped to OWASP Top 10 (2021) categories relevant to this integration:
 
 | OWASP | Measure |
 |-------|---------|
-| A01 Broken Access Control | Read-only scopes; no privileged operations; per-user OAuth |
+| A01 Broken Access Control | Read-only by design (no write-capable code path exists, regardless of token scope); no privileged operations; per-user personal access token (**updated 2026-07-11, D5** — was "per-user OAuth") |
 | A02 Cryptographic Failures | TLS-only endpoints; tokens stored via HA's standard config-entry storage — **corrected on review:** this is the same protection level as every other HA core integration's tokens, not separate encryption added by this integration; at-rest protection ultimately depends on the host's file permissions/disk encryption, which is outside this integration's control and should be a one-line honest note in SECURITY.md rather than an implied guarantee. No secrets in repo, logs, or diagnostics. |
 | A03 Injection | No dynamic query construction; all params URL-encoded via aiohttp; API responses validated before use |
 | A04 Insecure Design | Least privilege, polling over inbound webhooks in v1, threat model in SECURITY.md |
 | A05 Security Misconfiguration | Pinned dependency versions in manifest; CI validation (hassfest, HACS action) |
 | A06 Vulnerable & Outdated Components (added on review — was missing from this table entirely, undermining the "OWASP mapping stays true" claim in C4) | Dependency versions pinned in `manifest.json`; GitHub Dependabot/security alerts enabled on the repo; minimum HA core version tracked and bumped deliberately, not left implicit |
-| A07 Identification & Auth Failures | HA-managed OAuth2 with refresh rotation; reauth flow on revocation |
-| A08 Software & Data Integrity | Signed/tagged GitHub releases; no runtime code download; dependency review |
+| A07 Identification & Auth Failures | **Updated 2026-07-11, D5:** reauth flow triggered automatically on token revocation/expiry (401 → `ConfigEntryAuthFailed`); user-generated personal access token, not application-managed OAuth2 - see §4.2.1's scope-visibility tradeoff |
+| A08 Software & Data Integrity | No runtime code download; dependency review. **No tagged release exists yet** (verified 2026-07-05 via `gh api`) - signed/tagged GitHub releases are the plan starting at v1.0.0 (Gate 5), not a current fact; corrected here after being stated as present tense |
 | A09 Logging & Monitoring Failures | Structured logging with **no tokens/PII**; diagnostics export redacts identifiers using HA's built-in `homeassistant.components.diagnostics.async_redact_data` helper (added on review — reuses a reviewed HA core mechanism instead of ad hoc string matching, which is where redaction bugs usually creep in) |
 | A10 SSRF | API base URLs are constants; no user-supplied URLs are fetched |
 
