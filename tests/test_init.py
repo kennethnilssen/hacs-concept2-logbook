@@ -88,8 +88,14 @@ async def test_setup_and_unload_entry_with_empty_history(hass, aioclient_mock):
     assert entry.state.value == "not_loaded"
 
 
-async def test_setup_entry_with_one_result(hass, aioclient_mock):
-    """Sensors populate from a real (mocked) result."""
+async def test_setup_entry_with_one_result(hass, aioclient_mock, freezer):
+    """Sensors populate from a real (mocked) result.
+
+    Freezes time rather than relying on the fixture date matching whatever
+    day the suite happens to run on - it doesn't, reliably, since this
+    result's date needs to equal "today" for workout_done_today to be true.
+    """
+    freezer.move_to("2026-07-05 12:00:00")
     entry = await _setup_entry(
         hass,
         aioclient_mock,

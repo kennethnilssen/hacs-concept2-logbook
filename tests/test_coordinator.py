@@ -355,9 +355,14 @@ async def test_store_round_trip_survives_a_restart(hass, aioclient_mock):
 
 
 async def test_workout_streak_counts_consecutive_days_and_stops_at_gap(
-    hass, aioclient_mock
+    hass, aioclient_mock, freezer
 ):
-    """Streak logic has never been asserted directly - do it explicitly."""
+    """Streak logic has never been asserted directly - do it explicitly.
+
+    Freezes time - the fixture dates below only mean "2 days ago/yesterday/
+    today" relative to a pinned "now", not whatever day the suite runs on.
+    """
+    freezer.move_to("2026-07-05 12:00:00")
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results",
         json={
@@ -477,8 +482,9 @@ async def test_season_boundary_uses_previous_year_before_may(
     assert data.totals["meters_lifetime"] == 13000
 
 
-async def test_streak_is_zero_with_no_recent_workouts(hass, aioclient_mock):
+async def test_streak_is_zero_with_no_recent_workouts(hass, aioclient_mock, freezer):
     """Streak edge case: nothing in the last two days -> streak is 0, not stale."""
+    freezer.move_to("2026-07-05 12:00:00")
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results",
         json={
@@ -497,9 +503,10 @@ async def test_streak_is_zero_with_no_recent_workouts(hass, aioclient_mock):
 
 
 async def test_streak_continues_from_yesterday_if_none_logged_today_yet(
-    hass, aioclient_mock
+    hass, aioclient_mock, freezer
 ):
     """Haven't rowed yet today - streak should still count from yesterday back."""
+    freezer.move_to("2026-07-05 12:00:00")
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results",
         json={
