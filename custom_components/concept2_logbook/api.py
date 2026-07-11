@@ -119,11 +119,11 @@ class Concept2ApiClient:
                 payload = await response.json()
         except TimeoutError as err:
             raise Concept2ApiError(
-                f"Timed out calling Concept2 API for {path}"
+                f"Timed out calling Concept2 API for {path}: {err}"
             ) from err
         except ClientError as err:
             raise Concept2ApiError(
-                f"Network error calling Concept2 API for {path}"
+                f"Network error calling Concept2 API for {path}: {err}"
             ) from err
 
         # Treat all API responses as untrusted input (C4 / OWASP A03):

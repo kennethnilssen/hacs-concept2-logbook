@@ -132,23 +132,44 @@ async def test_connection_error_raises_api_error(hass, aioclient_mock):
     config_flow to distinguish cannot_connect from a genuinely unexpected
     error).
     """
-    import aiohttp
+    import errno
 
+    import aiohttp
+    from aiohttp.client_reqrep import ConnectionKey
+
+    connection_key = ConnectionKey(
+        host="log.concept2.com",
+        port=443,
+        is_ssl=True,
+        ssl=None,
+        proxy=None,
+        proxy_auth=None,
+        proxy_headers_hash=None,
+    )
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me",
         exc=aiohttp.ClientConnectorError(
-            connection_key=None, os_error=OSError("Connection refused")
+            connection_key=connection_key,
+            os_error=OSError(errno.ECONNREFUSED, "Connection refused"),
         ),
     )
-    client = _client(hass)
+    client = _client(hass, token="super-secret-token-value")
 
-    with pytest.raises(Concept2ApiError):
+    with pytest.raises(Concept2ApiError) as exc_info:
         await client.async_get_user()
+
+    # The underlying aiohttp error must be visible - a bare "Network error"
+    # with no detail is undiagnosable from logs alone (this is the gap that
+    # made a real production failure impossible to root-cause from the UI).
+    assert "Connection refused" in str(exc_info.value)
+    assert "super-secret-token-value" not in str(exc_info.value)
 
 
 async def test_timeout_raises_api_error(hass, aioclient_mock):
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", exc=TimeoutError())
-    client = _client(hass)
+    client = _client(hass, token="super-secret-token-value")
 
-    with pytest.raises(Concept2ApiError):
+    with pytest.raises(Concept2ApiError) as exc_info:
         await client.async_get_user()
+
+    assert "super-secret-token-value" not in str(exc_info.value)
