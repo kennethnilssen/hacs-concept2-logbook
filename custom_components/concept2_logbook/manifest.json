@@ -3,11 +3,10 @@
   "name": "Concept2 Logbook",
   "codeowners": ["@kennethnilssen"],
   "config_flow": true,
-  "dependencies": ["application_credentials"],
   "documentation": "https://github.com/kennethnilssen/hacs-concept2-logbook",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/kennethnilssen/hacs-concept2-logbook/issues",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "0.2.0"
 }

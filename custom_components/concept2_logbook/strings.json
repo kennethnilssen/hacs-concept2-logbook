@@ -2,12 +2,19 @@
   "title": "Concept2 Logbook",
   "config": {
     "step": {
-      "pick_implementation": {
-        "title": "Pick authentication method"
+      "user": {
+        "title": "Concept2 Logbook",
+        "description": "Generate a personal access token at log.concept2.com → Profile → Edit Profile → Applications → Concept2 Logbook API, then paste it below. The token stays valid until you revoke it on that page.",
+        "data": {
+          "access_token": "Access token"
+        }
       },
       "reauth_confirm": {
         "title": "Reauthenticate Concept2 Logbook",
-        "description": "The connection to your Concept2 Logbook account needs to be renewed."
+        "description": "Your Concept2 token is no longer valid (it may have been revoked). Generate a new token at log.concept2.com → Profile → Edit Profile → Applications and paste it below.",
+        "data": {
+          "access_token": "Access token"
+        }
       },
       "full_history_sync": {
         "title": "Sync workout history",
@@ -17,16 +24,14 @@
         }
       }
     },
+    "error": {
+      "invalid_auth": "That access token was rejected by Concept2. Double check you copied the whole token, or generate a new one.",
+      "cannot_connect": "Failed to connect to the Concept2 Logbook API.",
+      "unknown": "Unexpected error while validating the token."
+    },
     "abort": {
       "already_configured": "This Concept2 Logbook account is already configured.",
       "already_in_progress": "Configuration flow is already in progress.",
-      "cannot_connect": "Failed to connect to the Concept2 Logbook API.",
-      "missing_configuration": "The integration is not configured. Add your Concept2 application credentials first.",
-      "oauth_error": "Received invalid token data.",
-      "oauth_failed": "Error while obtaining an access token.",
-      "oauth_timeout": "Timed out resolving the OAuth2 token.",
-      "oauth_unauthorized": "The OAuth2 credentials were revoked.",
-      "user_rejected_authorize": "Account linking was rejected.",
       "wrong_account": "Reauthentication was for a different Concept2 account than the one being reconfigured.",
       "reauth_successful": "Reauthentication was successful."
     },
@@ -47,9 +52,6 @@
     "error": {
       "scan_interval_too_low": "Polling interval must be at least {min_minutes} minutes."
     }
-  },
-  "application_credentials": {
-    "description": "To authenticate, first register an application at the [Concept2 API Key portal]({api_key_portal_url}). During registration, set the redirect URI to `{redirect_url}`."
   },
   "entity": {
     "sensor": {

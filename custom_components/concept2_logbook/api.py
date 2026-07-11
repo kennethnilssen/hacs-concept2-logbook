@@ -3,19 +3,19 @@
 Endpoints, parameters, and response shapes verified 2026-07-05 directly
 against https://log.concept2.com/developers/documentation/ (constraint C2).
 
-This client only implements GET requests. v1 requests no write scopes
-(`user:read results:read` only, C3) and deliberately provides no method
-capable of writing data - there is no code path here that could accidentally
-mutate a user's Concept2 account, regardless of which base URL is
-configured.
+This client only implements GET requests - deliberately provides no method
+capable of writing data, so there is no code path here that could
+accidentally mutate a user's Concept2 account, regardless of which base URL
+is configured. Authenticated requests use a personal access token supplied
+by the caller (D5); this client never validates or restricts that token's
+scope, since Concept2's API does not expose a way to inspect it (SECURITY.md).
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from aiohttp import ClientResponseError, ClientSession
-from homeassistant.helpers import config_entry_oauth2_flow
+from aiohttp import ClientError, ClientResponseError, ClientSession
 
 from .const import (
     API_BASE_URL,
@@ -63,28 +63,26 @@ class Concept2ApiClient:
     def __init__(
         self,
         session: ClientSession,
-        oauth_session: config_entry_oauth2_flow.OAuth2Session | None = None,
+        token: str | None = None,
         base_url: str = API_BASE_URL,
     ) -> None:
         """Set up the client.
 
-        `oauth_session` is only required for authenticated calls (results,
-        user profile) - the public challenge endpoints work without one.
+        `token` is only required for authenticated calls (results, user
+        profile) - the public challenge endpoints work without one.
         """
         self._session = session
-        self._oauth_session = oauth_session
+        self._token = token
         self._base_url = base_url
 
     async def _headers(self, *, authenticated: bool) -> dict[str, str]:
         headers = {"Accept": API_VERSION_HEADER}
         if authenticated:
-            if self._oauth_session is None:
+            if self._token is None:
                 raise Concept2ApiError(
-                    "Authenticated request attempted without an OAuth2 session"
+                    "Authenticated request attempted without an access token"
                 )
-            await self._oauth_session.async_ensure_token_valid()
-            access_token = self._oauth_session.token["access_token"]
-            headers["Authorization"] = f"Bearer {access_token}"
+            headers["Authorization"] = f"Bearer {self._token}"
         return headers
 
     async def _get(
@@ -95,27 +93,38 @@ class Concept2ApiClient:
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         headers = await self._headers(authenticated=authenticated)
-        async with self._session.get(
-            f"{self._base_url}{path}", headers=headers, params=params
-        ) as response:
-            if response.status == 401:
-                raise Concept2AuthError(f"Concept2 API returned 401 for {path}")
-            if response.status == 429:
-                retry_after = _parse_retry_after(response.headers.get("Retry-After"))
-                raise Concept2RateLimitedError(
-                    f"Concept2 API returned 429 for {path}", retry_after=retry_after
-                )
-            if response.status >= 500:
-                raise Concept2ServerError(
-                    f"Concept2 API returned {response.status} for {path}"
-                )
-            try:
-                response.raise_for_status()
-            except ClientResponseError as err:
-                raise Concept2ApiError(
-                    f"Concept2 API returned {response.status} for {path}"
-                ) from err
-            payload = await response.json()
+        try:
+            async with self._session.get(
+                f"{self._base_url}{path}", headers=headers, params=params
+            ) as response:
+                if response.status == 401:
+                    raise Concept2AuthError(f"Concept2 API returned 401 for {path}")
+                if response.status == 429:
+                    retry_after = _parse_retry_after(
+                        response.headers.get("Retry-After")
+                    )
+                    raise Concept2RateLimitedError(
+                        f"Concept2 API returned 429 for {path}", retry_after=retry_after
+                    )
+                if response.status >= 500:
+                    raise Concept2ServerError(
+                        f"Concept2 API returned {response.status} for {path}"
+                    )
+                try:
+                    response.raise_for_status()
+                except ClientResponseError as err:
+                    raise Concept2ApiError(
+                        f"Concept2 API returned {response.status} for {path}"
+                    ) from err
+                payload = await response.json()
+        except TimeoutError as err:
+            raise Concept2ApiError(
+                f"Timed out calling Concept2 API for {path}"
+            ) from err
+        except ClientError as err:
+            raise Concept2ApiError(
+                f"Network error calling Concept2 API for {path}"
+            ) from err
 
         # Treat all API responses as untrusted input (C4 / OWASP A03):
         # validate the shape before handing it back to callers.

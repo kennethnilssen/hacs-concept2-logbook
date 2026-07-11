@@ -18,12 +18,11 @@ from .coordinator import Concept2Coordinator
 
 TO_REDACT = {
     "access_token",
-    "refresh_token",
-    "client_id",
-    "client_secret",
     "title",
     "unique_id",
     "username",
+    "email",
+    "profile_image",
     "comments",
 }
 
