@@ -1,17 +1,9 @@
 """Integration tests for __init__.py: full setup/unload against a mocked API.
 
-Supersedes the Gate 3 step 1 placeholder, which only tested inert stub
-functions - now that OAuth, the coordinator, and sensors are all real,
-these test the actual setup path (T14: unload/reload with no orphaned
-listeners).
+Tests the actual setup path (T14: unload/reload with no orphaned listeners).
 """
 
-from homeassistant.components.application_credentials import (
-    ClientCredential,
-    async_import_client_credential,
-)
 from homeassistant.helpers import entity_registry as er
-from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.concept2_logbook.const import (
@@ -20,9 +12,6 @@ from custom_components.concept2_logbook.const import (
     DOMAIN,
 )
 from custom_components.concept2_logbook.sensor import SENSOR_DESCRIPTIONS
-
-CLIENT_ID = "test-client-id"
-CLIENT_SECRET = "test-client-secret"
 
 
 def _mock_results_and_challenges(
@@ -45,10 +34,6 @@ def _mock_results_and_challenges(
 async def _setup_entry(
     hass, aioclient_mock, *, results=None, current_challenge=None
 ) -> MockConfigEntry:
-    assert await async_setup_component(hass, "application_credentials", {})
-    await async_import_client_credential(
-        hass, DOMAIN, ClientCredential(CLIENT_ID, CLIENT_SECRET), "test"
-    )
     _mock_results_and_challenges(
         aioclient_mock, results=results, current_challenge=current_challenge
     )
@@ -57,13 +42,7 @@ async def _setup_entry(
         domain=DOMAIN,
         unique_id="1",
         data={
-            "auth_implementation": "test",
-            "token": {
-                "access_token": "mock-access-token",
-                "refresh_token": "mock-refresh-token",
-                "expires_in": 604800,
-                "expires_at": 9999999999,
-            },
+            "access_token": "mock-access-token",
             "full_history_sync": False,
         },
     )

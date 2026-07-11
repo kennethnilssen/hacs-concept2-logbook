@@ -20,14 +20,6 @@ from custom_components.concept2_logbook.const import (
 from custom_components.concept2_logbook.coordinator import Concept2Coordinator
 
 
-class FakeOAuthSession:
-    def __init__(self) -> None:
-        self.token = {"access_token": "test-token"}
-
-    async def async_ensure_token_valid(self) -> None:
-        return None
-
-
 def _mock_challenges(aioclient_mock) -> None:
     aioclient_mock.get(f"{API_BASE_URL}/api/challenges/current", json={"data": []})
     aioclient_mock.get(f"{API_BASE_URL}/api/challenges/upcoming/30", json={"data": []})
@@ -56,8 +48,7 @@ def _make_coordinator(
         entry = MockConfigEntry(domain=DOMAIN, data=entry_data or {})
         entry.add_to_hass(hass)
     client = Concept2ApiClient(
-        session=async_get_clientsession(hass),
-        oauth_session=FakeOAuthSession(),
+        session=async_get_clientsession(hass), token="test-token"
     )
     return Concept2Coordinator(hass, entry, client)
 

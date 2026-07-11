@@ -16,25 +16,8 @@ from custom_components.concept2_logbook.api import (
 from custom_components.concept2_logbook.const import API_BASE_URL
 
 
-class FakeOAuthSession:
-    """Stand-in for config_entry_oauth2_flow.OAuth2Session in tests.
-
-    The real OAuth2Session lands in build step 3; this only needs to satisfy
-    the two things api.py actually calls on it.
-    """
-
-    def __init__(self, access_token: str = "test-access-token") -> None:
-        self.token = {"access_token": access_token}
-        self.ensure_valid_calls = 0
-
-    async def async_ensure_token_valid(self) -> None:
-        self.ensure_valid_calls += 1
-
-
-def _client(hass, oauth_session=None) -> Concept2ApiClient:
-    return Concept2ApiClient(
-        session=async_get_clientsession(hass), oauth_session=oauth_session
-    )
+def _client(hass, token: str | None = "test-access-token") -> Concept2ApiClient:
+    return Concept2ApiClient(session=async_get_clientsession(hass), token=token)
 
 
 async def test_get_user_returns_data_and_sends_bearer_token(hass, aioclient_mock):
@@ -42,13 +25,11 @@ async def test_get_user_returns_data_and_sends_bearer_token(hass, aioclient_mock
         f"{API_BASE_URL}/api/users/me",
         json={"data": {"id": 1, "username": "test"}},
     )
-    oauth_session = FakeOAuthSession(access_token="secret-token")
-    client = _client(hass, oauth_session)
+    client = _client(hass, token="secret-token")
 
     result = await client.async_get_user()
 
     assert result == {"id": 1, "username": "test"}
-    assert oauth_session.ensure_valid_calls == 1
     sent_headers = aioclient_mock.mock_calls[0][3]
     assert sent_headers["Authorization"] == "Bearer secret-token"
 
@@ -58,7 +39,7 @@ async def test_get_results_sends_expected_query_params(hass, aioclient_mock):
         f"{API_BASE_URL}/api/users/me/results",
         json={"data": [], "meta": {"pagination": {"total": 0}}},
     )
-    client = _client(hass, FakeOAuthSession())
+    client = _client(hass)
 
     payload = await client.async_get_results(
         updated_after="2026-07-01 00:00:00",
@@ -85,8 +66,8 @@ async def test_get_current_challenges_sends_no_authorization_header(
         f"{API_BASE_URL}/api/challenges/current",
         json={"data": [{"id": 1, "name": "Test Challenge"}]},
     )
-    # No oauth_session at all - public endpoints must not require one.
-    client = _client(hass, oauth_session=None)
+    # No token at all - public endpoints must not require one.
+    client = _client(hass, token=None)
 
     result = await client.async_get_current_challenges()
 
@@ -97,7 +78,7 @@ async def test_get_current_challenges_sends_no_authorization_header(
 
 async def test_401_raises_auth_error(hass, aioclient_mock):
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=401)
-    client = _client(hass, FakeOAuthSession())
+    client = _client(hass)
 
     with pytest.raises(Concept2AuthError):
         await client.async_get_user()
@@ -105,7 +86,7 @@ async def test_401_raises_auth_error(hass, aioclient_mock):
 
 async def test_429_raises_rate_limited_error(hass, aioclient_mock):
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me/results", status=429)
-    client = _client(hass, FakeOAuthSession())
+    client = _client(hass)
 
     with pytest.raises(Concept2RateLimitedError):
         await client.async_get_results()
@@ -113,7 +94,7 @@ async def test_429_raises_rate_limited_error(hass, aioclient_mock):
 
 async def test_server_error_raises_generic_api_error(hass, aioclient_mock):
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=500)
-    client = _client(hass, FakeOAuthSession())
+    client = _client(hass)
 
     with pytest.raises(Concept2ApiError):
         await client.async_get_user()
@@ -122,14 +103,52 @@ async def test_server_error_raises_generic_api_error(hass, aioclient_mock):
 async def test_malformed_response_raises_api_error(hass, aioclient_mock):
     """A response missing the expected "data" key must not be trusted (C4/A03)."""
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", json={"unexpected": "shape"})
-    client = _client(hass, FakeOAuthSession())
+    client = _client(hass)
 
     with pytest.raises(Concept2ApiError):
         await client.async_get_user()
 
 
-async def test_authenticated_call_without_oauth_session_raises(hass, aioclient_mock):
-    client = _client(hass, oauth_session=None)
+async def test_authenticated_call_without_token_raises(hass, aioclient_mock):
+    client = _client(hass, token=None)
+
+    with pytest.raises(Concept2ApiError):
+        await client.async_get_user()
+
+
+async def test_token_never_appears_in_exception_messages(hass, aioclient_mock):
+    """T11: even on failure, the token must never leak into an error message."""
+    aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=401)
+    client = _client(hass, token="super-secret-token-value")
+
+    with pytest.raises(Concept2AuthError) as exc_info:
+        await client.async_get_user()
+
+    assert "super-secret-token-value" not in str(exc_info.value)
+
+
+async def test_connection_error_raises_api_error(hass, aioclient_mock):
+    """Network/timeout failures must be wrapped, not leaked raw (used by
+    config_flow to distinguish cannot_connect from a genuinely unexpected
+    error).
+    """
+    import aiohttp
+
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me",
+        exc=aiohttp.ClientConnectorError(
+            connection_key=None, os_error=OSError("Connection refused")
+        ),
+    )
+    client = _client(hass)
+
+    with pytest.raises(Concept2ApiError):
+        await client.async_get_user()
+
+
+async def test_timeout_raises_api_error(hass, aioclient_mock):
+    aioclient_mock.get(f"{API_BASE_URL}/api/users/me", exc=TimeoutError())
+    client = _client(hass)
 
     with pytest.raises(Concept2ApiError):
         await client.async_get_user()

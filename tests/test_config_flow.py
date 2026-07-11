@@ -1,68 +1,32 @@
-"""Tests for the Concept2 Logbook OAuth2 config flow (T01-T04)."""
+"""Tests for the Concept2 Logbook personal-access-token config flow (D5)."""
 
 from homeassistant import config_entries
-from homeassistant.components.application_credentials import (
-    ClientCredential,
-    async_import_client_credential,
-)
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.setup import async_setup_component
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.concept2_logbook.const import (
-    API_BASE_URL,
-    DOMAIN,
-    OAUTH2_AUTHORIZE_URL,
-    OAUTH2_TOKEN_URL,
-)
-
-CLIENT_ID = "test-client-id"
-CLIENT_SECRET = "test-client-secret"
-
-
-async def _setup_credentials(hass):
-    assert await async_setup_component(hass, "application_credentials", {})
-    await async_import_client_credential(
-        hass, DOMAIN, ClientCredential(CLIENT_ID, CLIENT_SECRET), "test"
-    )
+from custom_components.concept2_logbook.const import API_BASE_URL, DOMAIN
 
 
 async def _start_flow(hass):
-    await _setup_credentials(hass)
-    result = await hass.config_entries.flow.async_init(
+    return await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
-    return result
 
 
-async def test_full_flow_creates_entry(
-    hass, hass_client_no_auth, aioclient_mock, current_request_with_host
-):
-    """T01: happy path - config entry created."""
-    result = await _start_flow(hass)
-    assert result["type"] == FlowResultType.EXTERNAL_STEP
-    assert result["url"].startswith(OAUTH2_AUTHORIZE_URL)
-    assert "scope=user:read,results:read" in result["url"]
-
-    state = result["url"].split("state=")[1].split("&")[0]
-    client = await hass_client_no_auth()
-    resp = await client.get(f"/auth/external/callback?code=abcd&state={state}")
-    assert resp.status == 200
-
-    aioclient_mock.post(
-        OAUTH2_TOKEN_URL,
-        json={
-            "access_token": "mock-access-token",
-            "refresh_token": "mock-refresh-token",
-            "token_type": "Bearer",
-            "expires_in": 604800,
-        },
-    )
+async def test_valid_token_creates_entry(hass, aioclient_mock):
+    """T01: a valid token creates the entry, unique_id = Concept2 user id."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me",
         json={"data": {"id": 1, "username": "test-user"}},
     )
 
-    result = await hass.config_entries.flow.async_configure(result["flow_id"])
+    result = await _start_flow(hass)
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "user"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"access_token": "valid-token"}
+    )
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "full_history_sync"
 
@@ -74,90 +38,69 @@ async def test_full_flow_creates_entry(
 
     entry = result["result"]
     assert entry.unique_id == "1"
-    assert entry.data["token"]["access_token"] == "mock-access-token"
+    assert entry.data["access_token"] == "valid-token"
     assert entry.data["full_history_sync"] is True
 
-    # The token request must always include our least-privilege scope,
-    # never leaving it to the default implementation's behavior (C3).
-    token_request = aioclient_mock.mock_calls[-2]
-    assert token_request[2]["scope"] == "user:read,results:read"
 
+async def test_invalid_token_shows_form_error(hass, aioclient_mock):
+    """T02: a 401 during validation shows invalid_auth, stores nothing."""
+    aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=401)
 
-async def test_full_flow_can_decline_history_sync(
-    hass, hass_client_no_auth, aioclient_mock, current_request_with_host
-):
-    """Declining full history sync is stored as False, not skipped entirely."""
     result = await _start_flow(hass)
-    state = result["url"].split("state=")[1].split("&")[0]
-    client = await hass_client_no_auth()
-    await client.get(f"/auth/external/callback?code=abcd&state={state}")
-
-    aioclient_mock.post(
-        OAUTH2_TOKEN_URL,
-        json={
-            "access_token": "mock-access-token",
-            "refresh_token": "mock-refresh-token",
-            "token_type": "Bearer",
-            "expires_in": 604800,
-        },
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"access_token": "bad-token"}
     )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "invalid_auth"}
+    assert not hass.config_entries.async_entries(DOMAIN)
+
+
+async def test_same_account_twice_aborts_already_configured(hass, aioclient_mock):
+    """T02b: adding the same Concept2 account a second time is rejected."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me",
         json={"data": {"id": 1, "username": "test-user"}},
     )
-
-    result = await hass.config_entries.flow.async_configure(result["flow_id"])
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={"full_history_sync": False}
+    existing = MockConfigEntry(
+        domain=DOMAIN, unique_id="1", data={"access_token": "old-token"}
     )
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["result"].data["full_history_sync"] is False
+    existing.add_to_hass(hass)
 
-
-async def test_flow_aborts_if_profile_fetch_fails(
-    hass, hass_client_no_auth, aioclient_mock, current_request_with_host
-):
-    """T02 (adapted): if we can't confirm who authorized, abort cleanly."""
     result = await _start_flow(hass)
-    state = result["url"].split("state=")[1].split("&")[0]
-
-    client = await hass_client_no_auth()
-    await client.get(f"/auth/external/callback?code=abcd&state={state}")
-
-    aioclient_mock.post(
-        OAUTH2_TOKEN_URL,
-        json={
-            "access_token": "mock-access-token",
-            "refresh_token": "mock-refresh-token",
-            "token_type": "Bearer",
-            "expires_in": 604800,
-        },
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"access_token": "another-valid-token"}
     )
-    aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=401)
 
-    result = await hass.config_entries.flow.async_configure(result["flow_id"])
     assert result["type"] == FlowResultType.ABORT
-    assert result["reason"] == "cannot_connect"
+    assert result["reason"] == "already_configured"
 
-    # Nothing should be stored if we aborted.
+
+async def test_network_error_shows_cannot_connect(hass, aioclient_mock):
+    """T03: a network/server error during validation shows cannot_connect."""
+    aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=500)
+
+    result = await _start_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"access_token": "some-token"}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "cannot_connect"}
     assert not hass.config_entries.async_entries(DOMAIN)
 
 
-async def test_reauth_updates_existing_entry(
-    hass, hass_client_no_auth, aioclient_mock, current_request_with_host
+async def test_reauth_with_valid_token_for_same_account_updates_entry(
+    hass, aioclient_mock
 ):
-    """T04: reauth for the same account updates the entry in place."""
-    await _setup_credentials(hass)
-
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
+    """T04: reauth with a fresh token for the same account updates and reloads."""
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me",
+        json={"data": {"id": 1, "username": "test-user"}},
+    )
     entry = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id="1",
-        data={
-            "auth_implementation": DOMAIN,
-            "token": {"access_token": "stale-token"},
-        },
+        domain=DOMAIN, unique_id="1", data={"access_token": "stale-token"}
     )
     entry.add_to_hass(hass)
 
@@ -165,77 +108,82 @@ async def test_reauth_updates_existing_entry(
     assert result["step_id"] == "reauth_confirm"
 
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={}
-    )
-    assert result["type"] == FlowResultType.EXTERNAL_STEP
-
-    state = result["url"].split("state=")[1].split("&")[0]
-    client = await hass_client_no_auth()
-    await client.get(f"/auth/external/callback?code=abcd&state={state}")
-
-    aioclient_mock.post(
-        OAUTH2_TOKEN_URL,
-        json={
-            "access_token": "fresh-token",
-            "refresh_token": "fresh-refresh-token",
-            "token_type": "Bearer",
-            "expires_in": 604800,
-        },
-    )
-    aioclient_mock.get(
-        f"{API_BASE_URL}/api/users/me",
-        json={"data": {"id": 1, "username": "test-user"}},
+        result["flow_id"], user_input={"access_token": "fresh-token"}
     )
 
-    result = await hass.config_entries.flow.async_configure(result["flow_id"])
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reauth_successful"
-    assert entry.data["token"]["access_token"] == "fresh-token"
+    assert entry.data["access_token"] == "fresh-token"
 
 
-async def test_reauth_wrong_account_aborts(
-    hass, hass_client_no_auth, aioclient_mock, current_request_with_host
-):
-    """T04 (extended): reauthenticating as a different Concept2 account is rejected."""
-    await _setup_credentials(hass)
-
-    from pytest_homeassistant_custom_component.common import MockConfigEntry
-
+async def test_reauth_with_different_account_aborts_wrong_account(hass, aioclient_mock):
+    """Reauthenticating with a token for a different Concept2 account is rejected."""
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me",
+        json={"data": {"id": 2, "username": "someone-else"}},
+    )
     entry = MockConfigEntry(
-        domain=DOMAIN,
-        unique_id="1",
-        data={
-            "auth_implementation": DOMAIN,
-            "token": {"access_token": "stale-token"},
-        },
+        domain=DOMAIN, unique_id="1", data={"access_token": "stale-token"}
     )
     entry.add_to_hass(hass)
 
     result = await entry.start_reauth_flow(hass)
     result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], user_input={}
-    )
-    state = result["url"].split("state=")[1].split("&")[0]
-    client = await hass_client_no_auth()
-    await client.get(f"/auth/external/callback?code=abcd&state={state}")
-
-    aioclient_mock.post(
-        OAUTH2_TOKEN_URL,
-        json={
-            "access_token": "fresh-token",
-            "refresh_token": "fresh-refresh-token",
-            "token_type": "Bearer",
-            "expires_in": 604800,
-        },
-    )
-    # A *different* Concept2 user id than the entry being reauthenticated.
-    aioclient_mock.get(
-        f"{API_BASE_URL}/api/users/me",
-        json={"data": {"id": 2, "username": "someone-else"}},
+        result["flow_id"], user_input={"access_token": "someone-elses-token"}
     )
 
-    result = await hass.config_entries.flow.async_configure(result["flow_id"])
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "wrong_account"
-    # The original entry must be untouched.
-    assert entry.data["token"]["access_token"] == "stale-token"
+    assert entry.data["access_token"] == "stale-token"
+
+
+async def test_declining_history_sync_is_stored_as_false(hass, aioclient_mock):
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me",
+        json={"data": {"id": 1, "username": "test-user"}},
+    )
+
+    result = await _start_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"access_token": "valid-token"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"full_history_sync": False}
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["result"].data["full_history_sync"] is False
+
+
+async def test_unexpected_error_during_validation_shows_unknown(hass, aioclient_mock):
+    """A genuinely unexpected failure (not one of our known exception types)
+    must still surface as a form error, not crash the flow.
+    """
+    aioclient_mock.get(f"{API_BASE_URL}/api/users/me", exc=ValueError("boom"))
+
+    result = await _start_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"access_token": "some-token"}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "unknown"}
+
+
+async def test_reauth_with_invalid_token_shows_form_error(hass, aioclient_mock):
+    """An invalid token during reauth shows an error, doesn't crash or abort."""
+    aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=401)
+    entry = MockConfigEntry(
+        domain=DOMAIN, unique_id="1", data={"access_token": "stale-token"}
+    )
+    entry.add_to_hass(hass)
+
+    result = await entry.start_reauth_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"access_token": "still-bad-token"}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"] == {"base": "invalid_auth"}
+    assert entry.data["access_token"] == "stale-token"

@@ -31,8 +31,7 @@ async def test_diagnostics_redacts_tokens_and_identifiers(hass, aioclient_mock):
 
     diagnostics = await async_get_config_entry_diagnostics(hass, entry)
 
-    assert diagnostics["entry"]["data"]["token"]["access_token"] == "**REDACTED**"
-    assert diagnostics["entry"]["data"]["token"]["refresh_token"] == "**REDACTED**"
+    assert diagnostics["entry"]["data"]["access_token"] == "**REDACTED**"
     assert diagnostics["entry"]["unique_id"] == "**REDACTED**"
     assert diagnostics["data"]["last_result"]["comments"] == "**REDACTED**"
 
