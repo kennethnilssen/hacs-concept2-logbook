@@ -9,7 +9,7 @@
 [![Hassfest](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/hassfest.yml/badge.svg)](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/hassfest.yml)
 [![HACS validation](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/hacs.yml/badge.svg)](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/hacs.yml)
 
-Connects your [Concept2 Logbook](https://log.concept2.com) account to Home Assistant
+Connects your [Concept2 Logbook](https://log.concept2.com) account to [Home Assistant](https://www.home-assistant.io)
 over the official Concept2 API, and exposes your workout results as sensors and an
 automation event. Read-only — it never writes anything back to your Concept2 account.
 
