@@ -7,6 +7,22 @@ All notable changes to this project are documented here. Format loosely follows
 
 Nothing yet.
 
+## [0.2.5-alpha] - 2026-07-12
+
+### Added
+
+- "Last synced" timestamp sensor - integration health (when the coordinator
+  last successfully polled Concept2), distinct from workout-data sensors.
+  Stakeholder request while doing live Gate 4 testing.
+- "Sync now" button - requests an immediate coordinator refresh
+  (`coordinator.async_request_refresh()`) without reloading the whole
+  config entry. Lighter than the integration Reload workaround, and
+  correctly respects the coordinator's own rate-limit backoff since it goes
+  through the same `_async_update_data()` path as a scheduled poll.
+- README now states the polling cadence explicitly (15 min default, 10 min
+  minimum) and that this is a `GET` request on a timer, not a Concept2
+  push/webhook - previously only the minimum was mentioned, in Options.
+
 ## [0.2.4-alpha] - 2026-07-12
 
 ### Fixed

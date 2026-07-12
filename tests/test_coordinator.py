@@ -91,6 +91,8 @@ async def test_first_sync_populates_data_without_firing_event(hass, aioclient_mo
     assert data.last_result["id"] == 1
     assert data.totals["meters_lifetime"] == 5000
     assert events == []
+    assert data.last_synced_at == coordinator._last_synced_at
+    assert data.last_synced_at is not None
 
 
 async def test_incremental_sync_fires_event_for_new_result_only(hass, aioclient_mock):

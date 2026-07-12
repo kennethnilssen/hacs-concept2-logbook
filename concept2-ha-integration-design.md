@@ -65,6 +65,12 @@ constraint is violated.
   - **Binary sensor:** "Workout done today".
   - **Challenges (public endpoints, no auth):** current challenge and upcoming
     challenge (name as state; end date, description as attributes).
+  - **Diagnostic entities (added 2026-07-12, Gate 4 stakeholder request):** a
+    "Last synced" timestamp sensor (integration health - when did the
+    coordinator last successfully poll, distinct from workout data), and a
+    "Sync now" button that calls `coordinator.async_request_refresh()`
+    directly rather than reloading the whole config entry - lighter weight,
+    and correctly respects the coordinator's own rate-limit backoff.
   - Lifetime totals require an optional full-history sync on first setup (paginated,
     250 results/page); user opts in during config flow.
   - Primary machine type: **RowErg** (stakeholder hardware: RowErg PM5 Standard).

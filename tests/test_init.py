@@ -116,7 +116,8 @@ async def test_setup_entry_with_one_result(hass, aioclient_mock, freezer):
 async def test_every_declared_sensor_is_actually_created(hass, aioclient_mock):
     """Catches wiring gaps a coordinator-only test can't see (e.g. a bad
     translation_key silently producing no entity) - every sensor description
-    plus the binary sensor should show up in the entity registry.
+    plus the binary sensor and sync button should show up in the entity
+    registry.
     """
     entry = await _setup_entry(hass, aioclient_mock, results=[])
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -130,6 +131,7 @@ async def test_every_declared_sensor_is_actually_created(hass, aioclient_mock):
         f"{entry.entry_id}_{description.key}" for description in SENSOR_DESCRIPTIONS
     }
     expected.add(f"{entry.entry_id}_workout_done_today")
+    expected.add(f"{entry.entry_id}_sync_now")
 
     assert expected == unique_ids
 

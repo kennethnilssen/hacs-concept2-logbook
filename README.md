@@ -56,6 +56,9 @@ this week / this month, calories this month, workout streak.
 token needed). Current challenge correctly shows "unknown" rather than an error when
 Concept2 has no active challenge running right now.
 
+**Diagnostic:** a "Last synced" timestamp sensor, and a "Sync now" button that
+requests an immediate sync without reloading the whole integration.
+
 Full technical detail in the design doc (`concept2-ha-integration-design.md`) §3.1 F3.
 
 ## Options

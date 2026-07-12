@@ -17,6 +17,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfLength
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -112,6 +113,16 @@ def _last_result_heart_rate_attrs(data: Concept2Data) -> dict[str, Any]:
         "max": heart_rate.get("max"),
         "ending": heart_rate.get("ending"),
     }
+
+
+def _last_synced_at(data: Concept2Data) -> datetime | None:
+    """Our own sync timestamp - generated with dt_util.utcnow(), so unlike
+    workout dates it's already known-UTC, no local-timezone guess needed.
+    """
+    if not data.last_synced_at:
+        return None
+    naive = datetime.strptime(data.last_synced_at, "%Y-%m-%d %H:%M:%S")
+    return naive.replace(tzinfo=dt_util.UTC)
 
 
 def _total(key: str) -> Callable[[Concept2Data], Any]:
@@ -275,6 +286,13 @@ SENSOR_DESCRIPTIONS: tuple[Concept2SensorEntityDescription, ...] = (
         translation_key="upcoming_challenge",
         value_fn=_challenge_value("upcoming"),
         attrs_fn=_challenge_attrs("upcoming"),
+    ),
+    Concept2SensorEntityDescription(
+        key="last_synced",
+        translation_key="last_synced",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_last_synced_at,
     ),
 )
 

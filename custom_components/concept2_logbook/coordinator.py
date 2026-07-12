@@ -61,6 +61,7 @@ class Concept2Data:
     totals: dict[str, Any] = field(default_factory=dict)
     current_challenge: dict[str, Any] | None = None
     upcoming_challenge: dict[str, Any] | None = None
+    last_synced_at: str | None = None
 
 
 def _parse_result_date(result: dict[str, Any]) -> date:
@@ -209,6 +210,7 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
             totals=totals,
             current_challenge=current_challenge,
             upcoming_challenge=upcoming_challenge,
+            last_synced_at=self._last_synced_at,
         )
 
     def _register_failure(self, *, retry_after: float | None) -> None:

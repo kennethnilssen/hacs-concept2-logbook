@@ -11,7 +11,7 @@ from .api import Concept2ApiClient
 from .const import CONF_ACCESS_TOKEN
 from .coordinator import Concept2Coordinator
 
-PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON]
 
 type Concept2ConfigEntry = ConfigEntry[Concept2Coordinator]
 

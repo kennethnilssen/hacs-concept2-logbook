@@ -73,10 +73,14 @@
       "calories_this_month": { "name": "Calories this month" },
       "workout_streak": { "name": "Workout streak" },
       "current_challenge": { "name": "Current challenge" },
-      "upcoming_challenge": { "name": "Upcoming challenge" }
+      "upcoming_challenge": { "name": "Upcoming challenge" },
+      "last_synced": { "name": "Last synced" }
     },
     "binary_sensor": {
       "workout_done_today": { "name": "Workout done today" }
+    },
+    "button": {
+      "sync_now": { "name": "Sync now" }
     }
   }
 }
