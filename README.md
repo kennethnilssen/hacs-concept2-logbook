@@ -17,14 +17,15 @@ automation event. Read-only — it never writes anything back to your Concept2 a
 > **AI-written, testing in progress. Read this before installing.**
 > This integration was built end-to-end by [Claude Code](https://claude.com/claude-code)
 > (an AI coding agent) under human supervision — every line was reviewed. It's
-> unit-tested (100% line coverage, CI green — see badges above), and the config
-> flow (personal access token authorization) has been confirmed working against
-> a real Home Assistant instance and a real Concept2 account. Full manual
-> acceptance testing - a workout actually appearing, the event firing, totals
-> accumulating over time - (the project's own "Gate 4") is still in progress,
-> not complete.
+> unit-tested (100% line coverage, CI green — see badges above). Confirmed
+> working against a real Home Assistant instance and a real Concept2 account:
+> the config flow (personal access token authorization), a full history sync,
+> and sensors populating with real workout totals and challenge data. Not yet
+> confirmed: the `concept2_new_result` event firing off a genuinely new
+> workout, and totals accumulating correctly over a longer stretch of time -
+> both are next (the project's own "Gate 4").
 >
-> There's a [pre-release](../../releases) (`v0.2.0-alpha`) so HACS can deliver
+> There's a [pre-release](../../releases) (`v0.2.2-alpha`) so HACS can deliver
 > updates at all - see [Pre-release only](#pre-release-only---not-a-testing-is-done-signal)
 > below before you install. This is **not** a "testing is done" v1.0.0. Use at
 > your own risk, expect rough edges, and please [open an issue](../../issues)
@@ -67,13 +68,18 @@ automation event. Read-only — it never writes anything back to your Concept2 a
 
 ### Pre-release only - not a "testing is done" signal
 
-[`v0.2.0-alpha`](../../releases) exists purely so HACS can actually deliver
-updates — without any tag, HACS was requesting a GitHub archive URL shaped for
-branch names against a commit SHA, which reliably 404'd (confirmed against a
-real test instance's logs, not assumed). It is **not** a v1.0.0 "manual testing
-is done" release — that's still Gate 5, after Gate 4's manual acceptance
-testing, which hasn't happened yet (see the warning at the top). Expect more
-pre-releases as testing continues before an eventual `v1.0.0`.
+[`v0.2.2-alpha`](../../releases) is the latest pre-release. Tagged releases
+started (`v0.2.0-alpha`) purely so HACS could actually deliver updates —
+without any tag, HACS was requesting a GitHub archive URL shaped for branch
+names against a commit SHA, which reliably 404'd (confirmed against a real
+test instance's logs, not assumed). `v0.2.1-alpha` and `v0.2.2-alpha` fixed
+two more real bugs found the same way, live: Concept2's challenge endpoints
+sometimes mislabel their response `Content-Type`, and represent "no current/
+upcoming challenge" as `{}` rather than `{"data": []}` - neither matches
+their own documentation. None of this is a v1.0.0 "manual testing is done"
+release - that's still Gate 5, after Gate 4's manual acceptance testing
+finishes (see the warning at the top). Expect more pre-releases as testing
+continues before an eventual `v1.0.0`.
 
 ### Via HACS (recommended)
 
@@ -120,11 +126,14 @@ polling interval (minimum 10 minutes, to stay a good citizen of Concept2's API).
 
 ## Screenshots
 
-None yet, honestly — the config flow has now run against a real instance and
-account, but nobody's captured screenshots of it yet, and sensors haven't
-populated with real workout data (see the warning at the top). Adding
-fake/mocked-up screenshots here would be more misleading than having none.
-Real ones will replace this section as manual testing continues.
+No image files committed here yet, but as of `v0.2.2-alpha` the sensors are
+confirmed populated with real data on a real Concept2 account: lifetime/
+season/month/week meters, workout streak, and last-workout detail all
+showing correct real numbers pulled from an actual history sync. Upcoming
+challenge shows real data too; current challenge correctly shows "unknown"
+when Concept2 has no active challenge right now, rather than an error.
+Actual screenshot images will replace this section once someone captures
+and commits them — narrating that they work isn't the same as showing it.
 
 ## Known v1 limitations
 

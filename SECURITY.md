@@ -58,7 +58,7 @@ doc's Gate 4/5 exit criteria).
 | A05 Security Misconfiguration | Pinned dependency versions in manifest; CI validation (hassfest, HACS action); GitHub secret scanning + push protection enabled on the repo |
 | A06 Vulnerable & Outdated Components | Dependency versions pinned; GitHub vulnerability alerts enabled (verified via the GitHub API, not just asserted); minimum HA core version tracked deliberately |
 | A07 Identification & Auth Failures | Reauth flow triggered automatically on token revocation/expiry (401 -> `ConfigEntryAuthFailed`); user-generated token, not application-managed - see the scope caveat above |
-| A08 Software & Data Integrity | No runtime code download; dependency review. **Updated 2026-07-11:** `v0.2.0-alpha` is a tagged pre-release, created specifically to fix HACS's commit-based update delivery (see README/CHANGELOG) - it is not the "manual testing complete" v1.0.0 release that Gate 5 still refers to. |
+| A08 Software & Data Integrity | No runtime code download; dependency review. **Updated 2026-07-12:** `v0.2.2-alpha` is the latest tagged pre-release; confirmed working against a real Home Assistant instance and Concept2 account (config flow, full history sync, real sensor data). Still not the "manual testing complete" v1.0.0 release that Gate 5 refers to - see README/CHANGELOG. |
 | A09 Logging & Monitoring Failures | Structured logging with no tokens/PII; diagnostics redaction via HA's `async_redact_data` helper |
 | A10 SSRF | API base URLs are hardcoded constants; no user-supplied URLs are ever fetched |
 
