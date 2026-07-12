@@ -61,12 +61,15 @@ polling interval (minimum 10 minutes, to stay a good citizen of Concept2's API).
 
 ## Screenshots
 
-No image files committed here yet, but as of `v0.2.2-alpha` the sensors are
-confirmed populated with real data on a real Concept2 account: lifetime/season/
-month/week meters, workout streak, and last-workout detail all showing correct real
-numbers pulled from an actual history sync, plus real upcoming-challenge data.
-Actual screenshot images will replace this section once someone captures and commits
-them — narrating that they work isn't the same as showing it.
+<img src="docs/screenshots/sensors.png" width="360" alt="Concept2 Logbook sensor list in Home Assistant, showing real data: lifetime/season/month/week meters, workout streak, last-workout detail, and challenges">
+
+The integration's entity list on a real Home Assistant instance and real Concept2
+account, unedited (UI language is Norwegian - the stakeholder's own instance). Real
+numbers pulled from an actual history sync: `1 008 m` last workout, `3 518 m`
+lifetime/season/month/week so far, a 2-day workout streak, 3 workouts this week. Note
+"Current challenge" correctly shows `Ukjent` ("Unknown") rather than an error - that's
+the expected state when Concept2 has no active challenge running right now, not a
+bug.
 
 ## What this is *not*
 
