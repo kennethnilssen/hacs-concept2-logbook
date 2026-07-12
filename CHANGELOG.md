@@ -7,6 +7,21 @@ All notable changes to this project are documented here. Format loosely follows
 
 Nothing yet.
 
+## [0.2.1-alpha] - 2026-07-11
+
+### Fixed
+
+- `api.py`'s network/timeout error wrapping discarded the underlying aiohttp
+  exception's own message, leaving only a generic "Network error calling
+  Concept2 API for {path}" with no way to tell DNS failure, connection
+  refused, TLS error, or anything else apart. Found while live-debugging a
+  real `ConfigEntryNotReady` retry loop on `/api/challenges/current` where
+  `curl` from the same Home Assistant host succeeded cleanly, meaning the
+  actual cause was in the aiohttp/Python layer, not the network path — and
+  the wrapped message gave no way to tell what. The underlying error is now
+  included in the message; token-leak test coverage extended to confirm it
+  still can't leak a token through this path.
+
 ## [0.2.0-alpha] - 2026-07-11
 
 Tagged specifically to fix HACS's commit-based update delivery, which was
