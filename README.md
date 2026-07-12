@@ -23,13 +23,9 @@ automation event. Read-only — it never writes anything back to your Concept2 a
 > and sensors populating with real workout totals and challenge data. Not yet
 > confirmed: the `concept2_new_result` event firing off a genuinely new
 > workout, and totals accumulating correctly over a longer stretch of time -
-> both are next (the project's own "Gate 4").
->
-> There's a [pre-release](../../releases) (`v0.2.2-alpha`) so HACS can deliver
-> updates at all - see [Pre-release only](#pre-release-only---not-a-testing-is-done-signal)
-> below before you install. This is **not** a "testing is done" v1.0.0. Use at
-> your own risk, expect rough edges, and please [open an issue](../../issues)
-> if something breaks.
+> both are next (the project's own "Gate 4"). This is **not** a "testing is
+> done" v1.0.0 yet - use at your own risk, expect rough edges, and please
+> [open an issue](../../issues) if something breaks.
 
 ## What this is
 
@@ -41,6 +37,36 @@ automation event. Read-only — it never writes anything back to your Concept2 a
   trigger automations (e.g. a TTS announcement, a light scene) on a new row.
 - Optional one-time full history sync on setup, for accurate lifetime totals from day
   one instead of growing from install date.
+
+## Sensors
+
+**Last workout:** distance, time, average pace, average heart rate, stroke rate,
+calories, drag factor, date.
+
+**Totals:** meters today / this week / this month / this season / lifetime, workouts
+this week / this month, calories this month, workout streak.
+
+**Status:** a "workout done today" binary sensor.
+
+**Challenges:** current challenge, upcoming challenge (public Concept2 data, no
+token needed). Current challenge correctly shows "unknown" rather than an error when
+Concept2 has no active challenge running right now.
+
+Full technical detail in the design doc (`concept2-ha-integration-design.md`) §3.1 F3.
+
+## Options
+
+**Settings → Devices & Services → Concept2 Logbook → Configure** lets you change the
+polling interval (minimum 10 minutes, to stay a good citizen of Concept2's API).
+
+## Screenshots
+
+No image files committed here yet, but as of `v0.2.2-alpha` the sensors are
+confirmed populated with real data on a real Concept2 account: lifetime/season/
+month/week meters, workout streak, and last-workout detail all showing correct real
+numbers pulled from an actual history sync, plus real upcoming-challenge data.
+Actual screenshot images will replace this section once someone captures and commits
+them — narrating that they work isn't the same as showing it.
 
 ## What this is *not*
 
@@ -66,20 +92,11 @@ automation event. Read-only — it never writes anything back to your Concept2 a
 
 ## Installation
 
-### Pre-release only - not a "testing is done" signal
+### Not in the HACS default store yet
 
-[`v0.2.2-alpha`](../../releases) is the latest pre-release. Tagged releases
-started (`v0.2.0-alpha`) purely so HACS could actually deliver updates —
-without any tag, HACS was requesting a GitHub archive URL shaped for branch
-names against a commit SHA, which reliably 404'd (confirmed against a real
-test instance's logs, not assumed). `v0.2.1-alpha` and `v0.2.2-alpha` fixed
-two more real bugs found the same way, live: Concept2's challenge endpoints
-sometimes mislabel their response `Content-Type`, and represent "no current/
-upcoming challenge" as `{}` rather than `{"data": []}` - neither matches
-their own documentation. None of this is a v1.0.0 "manual testing is done"
-release - that's still Gate 5, after Gate 4's manual acceptance testing
-finishes (see the warning at the top). Expect more pre-releases as testing
-continues before an eventual `v1.0.0`.
+This repository isn't submitted to the HACS default store, so it won't show up in a
+plain HACS search — you add it as a **custom repository** (steps below). See
+[Known v1 limitations](#known-v1-limitations).
 
 ### Via HACS (recommended)
 
@@ -110,30 +127,6 @@ prompt you to reauthenticate (paste a new token) rather than fail silently.
    Assistant config's `custom_components/` folder.
 2. Restart Home Assistant.
 3. Continue from step 6 above.
-
-## Sensors
-
-Last-workout distance/time/pace/stroke rate/calories/heart rate/drag factor/date,
-computed totals (meters today/this week/this month/this season/lifetime, workouts
-this week/month, calories this month, workout streak), a "workout done today" binary
-sensor, and current/upcoming Concept2 challenge sensors. Full detail in the design
-doc (`concept2-ha-integration-design.md`) §3.1 F3.
-
-## Options
-
-**Settings → Devices & Services → Concept2 Logbook → Configure** lets you change the
-polling interval (minimum 10 minutes, to stay a good citizen of Concept2's API).
-
-## Screenshots
-
-No image files committed here yet, but as of `v0.2.2-alpha` the sensors are
-confirmed populated with real data on a real Concept2 account: lifetime/
-season/month/week meters, workout streak, and last-workout detail all
-showing correct real numbers pulled from an actual history sync. Upcoming
-challenge shows real data too; current challenge correctly shows "unknown"
-when Concept2 has no active challenge right now, rather than an error.
-Actual screenshot images will replace this section once someone captures
-and commits them — narrating that they work isn't the same as showing it.
 
 ## Known v1 limitations
 

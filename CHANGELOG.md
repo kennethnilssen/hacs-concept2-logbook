@@ -7,6 +7,24 @@ All notable changes to this project are documented here. Format loosely follows
 
 Nothing yet.
 
+## [0.2.3-alpha] - 2026-07-12
+
+No functional/code changes from 0.2.2-alpha - documentation only.
+
+### Changed
+
+- README reorganized for a new reader finding this repo cold: What this is →
+  Sensors (grouped, not one dense paragraph) → Options → Screenshots → What
+  this is not → Requirements → Installation → everything else.
+- **This is the first release not marked a GitHub pre-release.** Auth, full
+  history sync, and real sensor/challenge data are confirmed working against
+  a real account (see the warning at the top of README), so HACS now offers
+  this as a normal update without needing "Show beta versions" enabled.
+  Still explicitly labeled `alpha` and still not a "testing is done" claim:
+  `concept2_new_result` firing on a genuinely new workout, and totals holding
+  up over a longer stretch of time, are unconfirmed - that's Gate 4, not this
+  release.
+
 ## [0.2.2-alpha] - 2026-07-12
 
 ### Fixed
