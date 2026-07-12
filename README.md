@@ -186,7 +186,9 @@ Built with [Claude Code](https://claude.com/claude-code), human-reviewed,
 security-focused — see [CLAUDE.md](CLAUDE.md) for the working agreement this project
 was built under, and [concept2-ha-integration-design.md](concept2-ha-integration-design.md)
 for the full design, scope, and test plan. See [CHANGELOG.md](CHANGELOG.md) for
-what's actually been built so far.
+what's actually been built so far, [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for
+local setup and the release process, and [docs/RETROSPECTIVE.md](docs/RETROSPECTIVE.md)
+for what was learned building it.
 
 ## License
 
