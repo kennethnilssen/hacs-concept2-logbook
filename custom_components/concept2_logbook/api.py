@@ -2,6 +2,11 @@
 
 Endpoints, parameters, and response shapes verified 2026-07-05 directly
 against https://log.concept2.com/developers/documentation/ (constraint C2).
+**Correction 2026-07-12:** live testing found the documentation doesn't
+match reality on two points for the challenge endpoints - responses can
+be mislabeled `Content-Type: text/html` even for JSON bodies, and "no
+current/upcoming challenge" is a bare `{}`, not `{"data": []}`. Both are
+handled defensively below rather than assumed away.
 
 This client only implements GET requests - deliberately provides no method
 capable of writing data, so there is no code path here that could
@@ -91,7 +96,13 @@ class Concept2ApiClient:
         *,
         authenticated: bool,
         params: dict[str, Any] | None = None,
+        allow_empty: bool = False,
     ) -> dict[str, Any]:
+        """`allow_empty` accepts a bare `{}` (no `data` key) as a valid,
+        no-content response - confirmed 2026-07-12 against a live account
+        that Concept2's challenge endpoints return this when there is no
+        current/upcoming challenge, rather than `{"data": []}`.
+        """
         headers = await self._headers(authenticated=authenticated)
         try:
             async with self._session.get(
@@ -116,7 +127,12 @@ class Concept2ApiClient:
                     raise Concept2ApiError(
                         f"Concept2 API returned {response.status} for {path}"
                     ) from err
-                payload = await response.json()
+                # Concept2 sometimes mislabels JSON responses as text/html
+                # (confirmed 2026-07-12, live, even with an explicit
+                # `Accept: application/json`) - content_type=None skips
+                # aiohttp's strict mimetype check; the shape check below
+                # still validates the parsed body.
+                payload = await response.json(content_type=None)
         except TimeoutError as err:
             raise Concept2ApiError(
                 f"Timed out calling Concept2 API for {path}: {err}"
@@ -128,7 +144,9 @@ class Concept2ApiClient:
 
         # Treat all API responses as untrusted input (C4 / OWASP A03):
         # validate the shape before handing it back to callers.
-        if not isinstance(payload, dict) or "data" not in payload:
+        if not isinstance(payload, dict):
+            raise Concept2ApiError(f"Unexpected response shape from {path}")
+        if "data" not in payload and not allow_empty:
             raise Concept2ApiError(f"Unexpected response shape from {path}")
         return payload
 
@@ -172,15 +190,27 @@ class Concept2ApiClient:
         )
 
     async def async_get_current_challenges(self) -> list[dict[str, Any]]:
-        """Fetch current challenges. Public endpoint, no auth required."""
-        payload = await self._get(CHALLENGES_CURRENT_PATH, authenticated=False)
-        return payload["data"]
+        """Fetch current challenges. Public endpoint, no auth required.
+
+        Returns an empty list when there is no current challenge - Concept2
+        returns a bare `{}` for that case, not `{"data": []}`.
+        """
+        payload = await self._get(
+            CHALLENGES_CURRENT_PATH, authenticated=False, allow_empty=True
+        )
+        return payload.get("data", [])
 
     async def async_get_upcoming_challenges(
         self, days: int = 30
     ) -> list[dict[str, Any]]:
-        """Fetch challenges upcoming within `days`. Public, no auth required."""
+        """Fetch challenges upcoming within `days`. Public, no auth required.
+
+        Returns an empty list when there is no upcoming challenge - see
+        `async_get_current_challenges`.
+        """
         payload = await self._get(
-            CHALLENGES_UPCOMING_PATH.format(days=days), authenticated=False
+            CHALLENGES_UPCOMING_PATH.format(days=days),
+            authenticated=False,
+            allow_empty=True,
         )
-        return payload["data"]
+        return payload.get("data", [])

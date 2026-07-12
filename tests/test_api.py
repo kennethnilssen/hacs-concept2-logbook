@@ -76,6 +76,64 @@ async def test_get_current_challenges_sends_no_authorization_header(
     assert "Authorization" not in sent_headers
 
 
+async def test_get_current_challenges_empty_response_returns_empty_list(
+    hass, aioclient_mock
+):
+    """Concept2 returns a bare `{}`, not `{"data": []}`, when there is no
+    current challenge - confirmed 2026-07-12 against a live account. This
+    must not raise "unexpected response shape".
+    """
+    aioclient_mock.get(f"{API_BASE_URL}/api/challenges/current", json={})
+    client = _client(hass, token=None)
+
+    result = await client.async_get_current_challenges()
+
+    assert result == []
+
+
+async def test_get_upcoming_challenges_empty_response_returns_empty_list(
+    hass, aioclient_mock
+):
+    aioclient_mock.get(f"{API_BASE_URL}/api/challenges/upcoming/30", json={})
+    client = _client(hass, token=None)
+
+    result = await client.async_get_upcoming_challenges()
+
+    assert result == []
+
+
+async def test_get_current_challenges_tolerates_mislabeled_content_type(
+    hass, aioclient_mock
+):
+    """Concept2 sometimes serves JSON with `Content-Type: text/html`
+    (confirmed 2026-07-12, live, even with an explicit
+    `Accept: application/json`). aiohttp's default strict mimetype check
+    would otherwise reject this with a ContentTypeError.
+    """
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/challenges/current",
+        json={"data": [{"id": 1, "name": "Test Challenge"}]},
+        headers={"Content-Type": "text/html; charset=utf-8"},
+    )
+    client = _client(hass, token=None)
+
+    result = await client.async_get_current_challenges()
+
+    assert result == [{"id": 1, "name": "Test Challenge"}]
+
+
+async def test_get_user_empty_response_still_raises(hass, aioclient_mock):
+    """Unlike the challenge endpoints, /api/users/me must always have `data` -
+    `allow_empty` is opt-in per endpoint, not a global weakening of the
+    untrusted-input shape check (C4 / OWASP A03).
+    """
+    aioclient_mock.get(f"{API_BASE_URL}/api/users/me", json={})
+    client = _client(hass)
+
+    with pytest.raises(Concept2ApiError):
+        await client.async_get_user()
+
+
 async def test_401_raises_auth_error(hass, aioclient_mock):
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=401)
     client = _client(hass)

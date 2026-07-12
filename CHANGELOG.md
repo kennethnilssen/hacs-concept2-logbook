@@ -7,6 +7,24 @@ All notable changes to this project are documented here. Format loosely follows
 
 Nothing yet.
 
+## [0.2.2-alpha] - 2026-07-12
+
+### Fixed
+
+- The actual root cause behind the `ConfigEntryNotReady` loop on
+  `/api/challenges/current`, now visible thanks to 0.2.1-alpha's better
+  error message: `ContentTypeError: 200, message='Attempt to decode JSON
+  with unexpected mimetype: text/html; charset=utf-8'`. Confirmed live
+  (2026-07-12) against Concept2's production API, even with an explicit
+  `Accept: application/json` sent: Concept2 mislabels the challenge
+  endpoints' `Content-Type` header, and represents "no current/upcoming
+  challenge" as a bare `{}` rather than `{"data": []}`, neither of which
+  matches the documentation this client was built against (constraint C2).
+  `_get()` now parses JSON without aiohttp's strict mimetype check and
+  treats an empty `{}` as "no data" - opt-in per endpoint via a new
+  `allow_empty` parameter, so the authenticated results/user endpoints
+  still reject a genuinely malformed response exactly as before.
+
 ## [0.2.1-alpha] - 2026-07-11
 
 ### Fixed
