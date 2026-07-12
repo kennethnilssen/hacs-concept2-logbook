@@ -29,10 +29,14 @@ automation event. Read-only — it never writes anything back to your Concept2 a
 
 ## What this is
 
-- Polls the Concept2 API periodically for your logged results (RowErg, SkiErg, BikeErg
-  — anything Concept2 tracks) and exposes them as Home Assistant sensors: last
-  workout details, computed totals (today/week/month/season/lifetime), a workout
-  streak, and current/upcoming Concept2 challenges.
+- **Polls** the Concept2 API every 15 minutes by default (configurable, 10 minutes
+  minimum - see [Options](#options)) for your logged results (RowErg, SkiErg,
+  BikeErg — anything Concept2 tracks), and exposes them as Home Assistant sensors:
+  last workout details, computed totals (today/week/month/season/lifetime), a
+  workout streak, and current/upcoming Concept2 challenges. This is a regular
+  `GET` request on a timer, not a push/webhook from Concept2 - so after a workout,
+  expect up to ~15 minutes before it shows up (or trigger it immediately yourself:
+  **Settings → Devices & Services → Concept2 Logbook → ⋮ → Reload**).
 - Fires a `concept2_new_result` event when a genuinely new result appears, so you can
   trigger automations (e.g. a TTS announcement, a light scene) on a new row.
 - Optional one-time full history sync on setup, for accurate lifetime totals from day
