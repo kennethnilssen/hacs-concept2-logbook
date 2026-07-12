@@ -73,18 +73,3 @@ just praise isn't useful to anyone reading it later.
   zero functional code changes - they existed purely to make a documentation
   or status change visible to HACS/GitHub's "latest release" resolution.
   That's a legitimate use of a version bump, not overhead.
-
-## Collaboration lessons
-
-- The stakeholder consistently rewarded catching and disclosing gaps over
-  presenting a falsely-clean status ("Are you proud of what you have coded?"
-  and the D6 known-gaps framing are both direct evidence of this). Default
-  to disclosure, not reassurance, with this collaborator specifically.
-- Judgment calls with real tradeoffs (e.g. "tag v1.0.0 with 2 known gaps or
-  wait?") were best handled by presenting 2-4 concrete options with an
-  honest tradeoff each, not by silently picking one or endlessly hedging.
-- "Do your best judgment, protect me" (repo hygiene pass) worked well as an
-  instruction precisely because prior turns had already established a clear,
-  consistent bar for what "good" looks like in this project - a vague
-  version of that instruction earlier in the project would have been much
-  harder to act on well.
