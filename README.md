@@ -25,9 +25,10 @@ automation event. Read-only — it never writes anything back to your Concept2 a
 > with the correct payload.
 >
 > **Two things are honestly still unconfirmed**, not silently skipped: a
-> Lovelace dashboard card has never actually been built from these sensors
-> (cosmetic risk only - the sensor values themselves are confirmed correct),
-> and reauthentication after revoking your Concept2 token live has only been
+> [starter dashboard](docs/example-dashboard.yaml) exists but hasn't been
+> confirmed rendering without errors on a live instance yet (cosmetic risk
+> only - the sensor values themselves are confirmed correct), and
+> reauthentication after revoking your Concept2 token live has only been
 > unit-tested, not tried for real. See the design doc's §6.3 for the full
 > acceptance-test status. [Open an issue](../../issues) if either breaks for
 > you.
@@ -82,6 +83,20 @@ lifetime/season/month/week so far, a 2-day workout streak, 3 workouts this week.
 "Current challenge" correctly shows `Ukjent` ("Unknown") rather than an error - that's
 the expected state when Concept2 has no active challenge running right now, not a
 bug.
+
+## Dashboard
+
+[`docs/example-dashboard.yaml`](docs/example-dashboard.yaml) is a starter Lovelace
+dashboard built entirely from stock Home Assistant card types (no extra HACS
+frontend cards required) - totals, last workout, challenges, and the sync
+controls. Deliberately doesn't mimic the PM5's live monitor layout, since this
+integration polls every 15 minutes rather than streaming live data; the card
+says so at the top rather than implying it's a live feed. Paste it via any
+dashboard's **⋮ → Edit Dashboard → ⋮ → Raw configuration editor**.
+
+**Honesty note:** this file exists and is believed correct, but hasn't yet been
+confirmed rendering without errors on a live instance - see
+[Known v1 limitations](#known-v1-limitations).
 
 ## What this is *not*
 
@@ -146,9 +161,10 @@ prompt you to reauthenticate (paste a new token) rather than fail silently.
 ## Known v1 limitations
 
 - **Two acceptance tests are still open, honestly** (see the warning at the top and
-  the design doc's §6.3): no Lovelace dashboard card has actually been built from
-  these sensors yet (cosmetic risk only), and reauthentication after revoking your
-  Concept2 token has only been unit-tested, not tried live.
+  the design doc's §6.3): a [starter dashboard](docs/example-dashboard.yaml) exists
+  now, but hasn't been confirmed rendering without errors on a live instance yet
+  (cosmetic risk only), and reauthentication after revoking your Concept2 token has
+  only been unit-tested, not tried live.
 - Deleting a workout on Concept2's side isn't detected instantly — it's caught on a
   periodic reconciliation (up to ~24h later), since Concept2's polling API has no
   "deleted items" feed (only its webhook does, which is out of scope for v1).

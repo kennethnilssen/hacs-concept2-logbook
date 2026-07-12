@@ -1,0 +1,91 @@
+# Example Lovelace dashboard for Concept2 Logbook.
+#
+# Not a live monitor - deliberately doesn't mimic the PM5's real-time
+# display, since this integration polls Concept2 every 15 minutes rather
+# than streaming live stroke data. This is a summary view of synced
+# results, and says so at the top.
+#
+# To use: any dashboard -> (three dots) Edit Dashboard -> (three dots)
+# Raw configuration editor -> paste this as a new view, or just the
+# `cards:` list into an existing view.
+#
+# Uses only stock Home Assistant card types (tile, grid, markdown,
+# entities, horizontal-stack) - no extra HACS frontend cards required.
+
+title: Concept2 Logbook
+path: concept2-logbook
+icon: mdi:rowing
+cards:
+  - type: markdown
+    content: >
+      ## Concept2 Logbook
+
+      Synced from Concept2 every 15 minutes - a summary of your logged
+      results, not a live feed from the PM5 monitor.
+
+  - type: grid
+    columns: 2
+    square: false
+    cards:
+      - type: tile
+        entity: sensor.concept2_logbook_meters_lifetime
+        name: Lifetime
+        icon: mdi:infinity
+        color: blue
+      - type: tile
+        entity: sensor.concept2_logbook_meters_this_week
+        name: This week
+        icon: mdi:calendar-week
+        color: green
+      - type: tile
+        entity: sensor.concept2_logbook_workout_streak
+        name: Streak
+        icon: mdi:fire
+        color: orange
+      - type: tile
+        entity: binary_sensor.concept2_logbook_workout_done_today
+        name: Done today
+        icon: mdi:check-circle
+
+  - type: markdown
+    title: Last workout
+    content: >
+      {% set dist = states('sensor.concept2_logbook_last_workout_distance') %}
+      {% set t = states('sensor.concept2_logbook_last_workout_time') | float(0) %}
+      {% set pace = states('sensor.concept2_logbook_last_workout_average_pace') | float(0) %}
+      {% set hr = states('sensor.concept2_logbook_last_workout_average_heart_rate') %}
+      {% set date = states('sensor.concept2_logbook_last_workout_date') %}
+
+      **{{ dist }} m** in **{{ (t // 60) | int }}:{{ '%02d' % (t % 60) }}**
+      ({{ (pace // 60) | int }}:{{ '%02d' % (pace % 60) }} /500m average pace),
+      {{ hr }} bpm average heart rate.
+
+      {% if date not in ['unknown', 'unavailable', 'none', none] %}
+      {{ as_timestamp(date) | timestamp_custom('%A %d %B, %H:%M') }}
+      {% endif %}
+
+  - type: entities
+    title: Totals
+    entities:
+      - entity: sensor.concept2_logbook_meters_this_month
+      - entity: sensor.concept2_logbook_meters_this_season
+      - entity: sensor.concept2_logbook_workouts_this_week
+      - entity: sensor.concept2_logbook_workouts_this_month
+      - entity: sensor.concept2_logbook_calories_this_month
+
+  - type: entities
+    title: Challenges
+    entities:
+      - entity: sensor.concept2_logbook_current_challenge
+      - entity: sensor.concept2_logbook_upcoming_challenge
+
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.concept2_logbook_last_synced
+        name: Last synced
+        icon: mdi:sync
+      - type: tile
+        entity: button.concept2_logbook_sync_now
+        name: Sync now
+        icon: mdi:sync-circle
