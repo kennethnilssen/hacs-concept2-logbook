@@ -412,13 +412,14 @@ screen this project no longer has).
 | A03 | Row a workout, sync via ErgData | New result visible in HA within one polling cycle; event fired | ✅ Confirmed 2026-07-12, incl. correct `milestone_crossed`/`longest_row_this_season` payload data |
 | A04 | Build Lovelace card from sensors | Metrics render correctly | ✅ Confirmed 2026-07-12 - `docs/example-dashboard.yaml` pasted into a real dashboard, rendered cleanly with real data (totals, last workout incl. correct mm:ss template math, challenges, sync controls), no errors |
 | A05 | Automation on `concept2_new_result` (design doc originally said TTS specifically) | Automation fires with workout data | ✅ Confirmed 2026-07-12 via a persistent-notification automation - proves the trigger mechanism; a TTS action specifically wasn't tried, but is just a different action on the same trigger |
-| A06 | Revoke access from Concept2 Settings → Applications | HA prompts reauth; no errors flood the log | ⬜ Not done live - unit-tested only (`test_reauth_with_invalid_token_shows_form_error` et al.) |
+| A06 | Revoke access from Concept2 Settings → Applications | HA prompts reauth; no errors flood the log | ✅ Confirmed 2026-07-12 - revoked live, reload surfaced `Concept2 token invalid or revoked` via the reauth flow exactly as designed (not a crash or silent failure), a freshly generated token was accepted, and Home Assistant reported "Reauthentication was successful" |
 
 **Gate 4 exit criteria:** All T/V/A cases pass; stakeholder acceptance recorded.
-**Stakeholder decision 2026-07-12:** proceeded to tag v1.0.0 (Gate 5) with A04
-and A06 still open, explicitly accepted rather than silently skipped - see
-CHANGELOG.md's `[1.0.0]` entry and README's known-gaps note. **Update same
-day:** A04 has since been confirmed live (above) - one gap left, A06.
+**Met in full 2026-07-12.** Originally tagged v1.0.0 with A04 and A06 still
+open (stakeholder decision, D6) - both were confirmed live later the same
+day. All of T01-T15 (automated), V01-V04 (compliance), and A01-A06 (manual)
+now pass. See CHANGELOG.md's `[1.0.0]`/`[1.0.1]`/`[1.0.2]` entries for the
+timeline.
 
 ---
 
@@ -428,7 +429,7 @@ day:** A04 has since been confirmed live (above) - one gap left, A06.
 2. Publish as HACS **custom repository**; README explains adding it.
 3. Announce for community testing (HA Community forum thread).
 4. Collect feedback → v1.x backlog (webhooks, more sensors, translations,
-   HACS default-store submission, HA brands submission, A06 follow-up).
+   HACS default-store submission, HA brands submission).
 
 **Gate 5 exit criteria:** Public release live; installation verified from a clean HA instance.
 
@@ -472,6 +473,6 @@ These become the project's `CLAUDE.md` working agreement:
 | D3 | License | MIT vs Apache-2.0 | **CLOSED 2026-07-05** — MIT |
 | D4 | Repo visibility during build | Private until Gate 4, then public | **CLOSED 2026-07-05** — private through Gate 3's build steps; made public 2026-07-05 on stakeholder instruction, ahead of Gate 4's manual acceptance testing (A01-A06), specifically to unblock full HACS validation (see Gate 3 exit criteria note above). Gate 4 itself is not yet started. |
 | D5 | Auth mechanism for v1.0 | OAuth2 Authorization Code (as originally built, §4.2) vs Concept2 personal access token | **CLOSED 2026-07-11** — personal access token (Edit Profile → Applications → Concept2 Logbook API), replacing the OAuth2 design built in Gate 3 step 3. Rationale: the stakeholder generated a token and confirmed the OAuth "API Key portal" client-registration flow is the app-developer path for multi-user distribution, not what an individual sees on their own profile - the personal token is what Concept2 actually intends for a single-user personal install like this one. Accepted tradeoff: token scope is set by Concept2's UI and not visible/restrictable by our code (§4.2, C3 amendment above) - this is weaker than the OAuth2 design's code-enforced explicit scope, and is documented as such rather than presented as equivalent. OAuth2 deferred to v1.x, not deleted from history. |
-| D6 | Ship v1.0.0 with A04/A06 still open, or hold for full Gate 4 closure | Tag v1.0.0 now vs finish A04 (Lovelace card) and A06 (live reauth-on-revoke) first | **CLOSED 2026-07-12** — tag v1.0.0 now. By this point A01, A02, A03, and A05 were all confirmed live (§6.3), including the one item nothing else could substitute for: `concept2_new_result` firing correctly on a genuinely new result, with the correct `milestone_crossed`/`longest_row_this_season` payload. The stakeholder judged that sufficient, given A04 is cosmetic (Lovelace rendering; the underlying sensor values are already confirmed correct) and A06 (live token-revocation reauth) is unit-tested, not unverified logic. Explicitly not a claim that Gate 4 is 100% closed - see the status table in §6.3 and the known-gaps note in CHANGELOG.md's `[1.0.0]` entry and README. |
+| D6 | Ship v1.0.0 with A04/A06 still open, or hold for full Gate 4 closure | Tag v1.0.0 now vs finish A04 (Lovelace card) and A06 (live reauth-on-revoke) first | **CLOSED 2026-07-12** — tag v1.0.0 now. By this point A01, A02, A03, and A05 were all confirmed live (§6.3), including the one item nothing else could substitute for: `concept2_new_result` firing correctly on a genuinely new result, with the correct `milestone_crossed`/`longest_row_this_season` payload. The stakeholder judged that sufficient, given A04 is cosmetic (Lovelace rendering; the underlying sensor values are already confirmed correct) and A06 (live token-revocation reauth) is unit-tested, not unverified logic. Explicitly not a claim that Gate 4 is 100% closed at the time - see the status table in §6.3. **Both gaps closed later the same day:** A04 confirmed (`v1.0.1`), then A06 confirmed live - revoked a real token, watched the reauth flow trigger correctly, accepted a fresh token successfully (`v1.0.2`). Gate 4 is now fully closed, not just accepted-with-gaps. |
 
 **Gate 1 exit criteria met 2026-07-05** — scope, sensor list (D1), domain/naming (D2), license (D3), and repo visibility (D4) all signed off. Gate 1 closed. D5 and D6 are post-Gate-3 amendments (D5 raised during Gate 4 prep 2026-07-11; D6 the Gate 4→5 transition call 2026-07-12), not Gate 1 items — recorded here to keep all numbered decisions in one place.

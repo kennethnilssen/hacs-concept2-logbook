@@ -7,6 +7,25 @@ All notable changes to this project are documented here. Format loosely follows
 
 Nothing yet.
 
+## [1.0.2] - 2026-07-12
+
+Gate 4 is now fully closed - every manual acceptance test in the design
+doc's §6.3 (A01-A06) is confirmed live against a real Home Assistant
+instance and a real Concept2 account. No functional/code changes.
+
+### Fixed
+
+- Closes the last known gap from `v1.0.0`: **A06**, live reauth on token
+  revocation. Confirmed live - revoked a real Concept2 token, reloaded the
+  integration, and got `Concept2 token invalid or revoked` surfaced through
+  the standard Home Assistant reauth flow (not a crash, not a silent
+  failure). Generated a fresh token, entered it, and got "Reauthentication
+  was successful."
+- README's top warning softened accordingly: no more "known gaps" framing.
+  Still explicit that this is thorough testing on one real account and
+  instance, not broad community testing (not yet in the HACS default
+  store).
+
 ## [1.0.1] - 2026-07-12
 
 ### Added

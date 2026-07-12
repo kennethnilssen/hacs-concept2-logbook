@@ -14,21 +14,22 @@ over the official Concept2 API, and exposes your workout results as sensors and 
 automation event. Read-only — it never writes anything back to your Concept2 account.
 
 > [!NOTE]
-> **AI-written, v1.0.0, one known gap. Read this before installing.**
+> **AI-written. Read this before installing.**
 > This integration was built end-to-end by [Claude Code](https://claude.com/claude-code)
 > (an AI coding agent) under human supervision — every line was reviewed. It's
-> unit-tested (100% line coverage, CI green — see badges above) and confirmed
-> working live against a real Home Assistant instance and a real Concept2
-> account: the personal access token config flow, a full history sync, real
-> sensor/challenge data, `concept2_new_result` firing correctly on a genuinely
-> new workout with the correct payload, and the [starter dashboard](docs/example-dashboard.yaml)
-> rendering cleanly with real data.
+> unit-tested (100% line coverage, CI green — see badges above), and every
+> manual acceptance test in the design doc (§6.3) has been confirmed against
+> a real Home Assistant instance and a real Concept2 account: the personal
+> access token config flow, a full history sync, real sensor/challenge data,
+> `concept2_new_result` firing correctly on a genuinely new workout with the
+> correct payload, the [starter dashboard](docs/example-dashboard.yaml)
+> rendering cleanly, and reauthentication recovering correctly after a live
+> token revocation.
 >
-> **One thing is honestly still unconfirmed**, not silently skipped:
-> reauthentication after revoking your Concept2 token live has only been
-> unit-tested, not tried for real. See the design doc's §6.3 for the full
-> acceptance-test status. [Open an issue](../../issues) if it breaks for
-> you.
+> That's thorough testing on **one** real account and instance, not broad
+> community testing — this isn't in the HACS default store yet, so still
+> expect the occasional rough edge outside what's been directly exercised
+> here. [Open an issue](../../issues) if something breaks.
 
 ## What this is
 
@@ -157,9 +158,6 @@ prompt you to reauthenticate (paste a new token) rather than fail silently.
 
 ## Known v1 limitations
 
-- **One acceptance test is still open, honestly** (see the warning at the top and
-  the design doc's §6.3): reauthentication after revoking your Concept2 token has
-  only been unit-tested, not tried live.
 - Deleting a workout on Concept2's side isn't detected instantly — it's caught on a
   periodic reconciliation (up to ~24h later), since Concept2's polling API has no
   "deleted items" feed (only its webhook does, which is out of scope for v1).
