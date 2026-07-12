@@ -8,8 +8,10 @@ This integration was built with [Claude Code](https://claude.com/claude-code)
 (Anthropic) under a documented working agreement (`CLAUDE.md`) and design doc
 (`concept2-ha-integration-design.md`), with human review at every stage-gate
 before merge and before each release. AI assistance does not remove the human
-review step — every release requires stakeholder sign-off (see the design
-doc's Gate 4/5 exit criteria).
+review step — every release requires stakeholder sign-off, either against
+the design doc's Gate 4/5 exit criteria in full, or - as with `v1.0.0` - an
+explicit, documented exception when shipping with known gaps still open (see
+decision D6 in the design doc).
 
 ## Threat model summary
 
