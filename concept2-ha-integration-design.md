@@ -410,17 +410,15 @@ screen this project no longer has).
 | A01 | Install via HACS custom repository | Install + restart + config flow completes in < 10 min following README only | ✅ Confirmed 2026-07-11 |
 | A02 | Authorize with a real Concept2 account, personal access token | Token accepted; entities appear | ✅ Confirmed 2026-07-11 |
 | A03 | Row a workout, sync via ErgData | New result visible in HA within one polling cycle; event fired | ✅ Confirmed 2026-07-12, incl. correct `milestone_crossed`/`longest_row_this_season` payload data |
-| A04 | Build Lovelace card from sensors | Metrics render correctly | ⬜ Partial - a starter dashboard now exists (`docs/example-dashboard.yaml`, added 2026-07-12), built from stock card types only; not yet confirmed rendering without errors on a live instance. Low-risk/cosmetic either way - entities confirmed correct via the entity list directly |
+| A04 | Build Lovelace card from sensors | Metrics render correctly | ✅ Confirmed 2026-07-12 - `docs/example-dashboard.yaml` pasted into a real dashboard, rendered cleanly with real data (totals, last workout incl. correct mm:ss template math, challenges, sync controls), no errors |
 | A05 | Automation on `concept2_new_result` (design doc originally said TTS specifically) | Automation fires with workout data | ✅ Confirmed 2026-07-12 via a persistent-notification automation - proves the trigger mechanism; a TTS action specifically wasn't tried, but is just a different action on the same trigger |
 | A06 | Revoke access from Concept2 Settings → Applications | HA prompts reauth; no errors flood the log | ⬜ Not done live - unit-tested only (`test_reauth_with_invalid_token_shows_form_error` et al.) |
 
 **Gate 4 exit criteria:** All T/V/A cases pass; stakeholder acceptance recorded.
-**Stakeholder decision 2026-07-12:** proceeding to tag v1.0.0 (Gate 5) with A04
+**Stakeholder decision 2026-07-12:** proceeded to tag v1.0.0 (Gate 5) with A04
 and A06 still open, explicitly accepted rather than silently skipped - see
-CHANGELOG.md's `[1.0.0]` entry and README's known-gaps note. Formally, Gate 4
-is not 100% closed by its own exit criteria; this is a deliberate, informed
-call to ship with two known, documented gaps, not a claim that testing is
-complete.
+CHANGELOG.md's `[1.0.0]` entry and README's known-gaps note. **Update same
+day:** A04 has since been confirmed live (above) - one gap left, A06.
 
 ---
 
@@ -430,7 +428,7 @@ complete.
 2. Publish as HACS **custom repository**; README explains adding it.
 3. Announce for community testing (HA Community forum thread).
 4. Collect feedback → v1.x backlog (webhooks, more sensors, translations,
-   HACS default-store submission, HA brands submission, A04/A06 follow-up).
+   HACS default-store submission, HA brands submission, A06 follow-up).
 
 **Gate 5 exit criteria:** Public release live; installation verified from a clean HA instance.
 

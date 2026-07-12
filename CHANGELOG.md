@@ -5,15 +5,25 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.0.1] - 2026-07-12
+
 ### Added
 
 - `docs/example-dashboard.yaml` - a starter Lovelace dashboard using only
   stock Home Assistant card types, no extra HACS frontend cards required.
   Deliberately doesn't mimic the PM5's live monitor layout (this integration
   polls every 15 minutes, not a live feed) - says so at the top of the card
-  itself. Progress toward the design doc's A04 acceptance test, not a close:
-  the file exists and is believed correct, but hasn't been confirmed
-  rendering without errors on a live instance yet.
+  itself. Confirmed rendering cleanly with real data on a live instance the
+  same day, including the "Last workout" card's template math (mm:ss
+  distance/time/pace formatting, date) - closes the design doc's A04
+  acceptance test.
+
+### Known gaps
+
+One of `v1.0.0`'s two known gaps (§6.3, A04/A06) is now closed. A06 (live
+reauth on token revocation) remains open, unit-tested but not tried live.
 
 ## [1.0.0] - 2026-07-12
 

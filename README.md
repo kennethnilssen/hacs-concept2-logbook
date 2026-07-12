@@ -14,23 +14,20 @@ over the official Concept2 API, and exposes your workout results as sensors and 
 automation event. Read-only — it never writes anything back to your Concept2 account.
 
 > [!NOTE]
-> **AI-written, v1.0.0, two known gaps. Read this before installing.**
+> **AI-written, v1.0.0, one known gap. Read this before installing.**
 > This integration was built end-to-end by [Claude Code](https://claude.com/claude-code)
 > (an AI coding agent) under human supervision — every line was reviewed. It's
 > unit-tested (100% line coverage, CI green — see badges above) and confirmed
 > working live against a real Home Assistant instance and a real Concept2
 > account: the personal access token config flow, a full history sync, real
-> sensor/challenge data, and - the one thing nothing else could substitute
-> for - `concept2_new_result` firing correctly on a genuinely new workout,
-> with the correct payload.
+> sensor/challenge data, `concept2_new_result` firing correctly on a genuinely
+> new workout with the correct payload, and the [starter dashboard](docs/example-dashboard.yaml)
+> rendering cleanly with real data.
 >
-> **Two things are honestly still unconfirmed**, not silently skipped: a
-> [starter dashboard](docs/example-dashboard.yaml) exists but hasn't been
-> confirmed rendering without errors on a live instance yet (cosmetic risk
-> only - the sensor values themselves are confirmed correct), and
+> **One thing is honestly still unconfirmed**, not silently skipped:
 > reauthentication after revoking your Concept2 token live has only been
 > unit-tested, not tried for real. See the design doc's §6.3 for the full
-> acceptance-test status. [Open an issue](../../issues) if either breaks for
+> acceptance-test status. [Open an issue](../../issues) if it breaks for
 > you.
 
 ## What this is
@@ -94,9 +91,9 @@ integration polls every 15 minutes rather than streaming live data; the card
 says so at the top rather than implying it's a live feed. Paste it via any
 dashboard's **⋮ → Edit Dashboard → ⋮ → Raw configuration editor**.
 
-**Honesty note:** this file exists and is believed correct, but hasn't yet been
-confirmed rendering without errors on a live instance - see
-[Known v1 limitations](#known-v1-limitations).
+Confirmed 2026-07-12: renders cleanly with real data on a live instance,
+including the "Last workout" card's template math (distance/time/pace
+formatting, date).
 
 ## What this is *not*
 
@@ -160,10 +157,8 @@ prompt you to reauthenticate (paste a new token) rather than fail silently.
 
 ## Known v1 limitations
 
-- **Two acceptance tests are still open, honestly** (see the warning at the top and
-  the design doc's §6.3): a [starter dashboard](docs/example-dashboard.yaml) exists
-  now, but hasn't been confirmed rendering without errors on a live instance yet
-  (cosmetic risk only), and reauthentication after revoking your Concept2 token has
+- **One acceptance test is still open, honestly** (see the warning at the top and
+  the design doc's §6.3): reauthentication after revoking your Concept2 token has
   only been unit-tested, not tried live.
 - Deleting a workout on Concept2's side isn't detected instantly — it's caught on a
   periodic reconciliation (up to ~24h later), since Concept2's polling API has no
