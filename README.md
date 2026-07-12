@@ -13,19 +13,24 @@ Connects your [Concept2 Logbook](https://log.concept2.com) account to Home Assis
 over the official Concept2 API, and exposes your workout results as sensors and an
 automation event. Read-only — it never writes anything back to your Concept2 account.
 
-> [!WARNING]
-> **AI-written, testing in progress. Read this before installing.**
+> [!NOTE]
+> **AI-written, v1.0.0, two known gaps. Read this before installing.**
 > This integration was built end-to-end by [Claude Code](https://claude.com/claude-code)
 > (an AI coding agent) under human supervision — every line was reviewed. It's
-> unit-tested (100% line coverage, CI green — see badges above). Confirmed
-> working against a real Home Assistant instance and a real Concept2 account:
-> the config flow (personal access token authorization), a full history sync,
-> and sensors populating with real workout totals and challenge data. Not yet
-> confirmed: the `concept2_new_result` event firing off a genuinely new
-> workout, and totals accumulating correctly over a longer stretch of time -
-> both are next (the project's own "Gate 4"). This is **not** a "testing is
-> done" v1.0.0 yet - use at your own risk, expect rough edges, and please
-> [open an issue](../../issues) if something breaks.
+> unit-tested (100% line coverage, CI green — see badges above) and confirmed
+> working live against a real Home Assistant instance and a real Concept2
+> account: the personal access token config flow, a full history sync, real
+> sensor/challenge data, and - the one thing nothing else could substitute
+> for - `concept2_new_result` firing correctly on a genuinely new workout,
+> with the correct payload.
+>
+> **Two things are honestly still unconfirmed**, not silently skipped: a
+> Lovelace dashboard card has never actually been built from these sensors
+> (cosmetic risk only - the sensor values themselves are confirmed correct),
+> and reauthentication after revoking your Concept2 token live has only been
+> unit-tested, not tried for real. See the design doc's §6.3 for the full
+> acceptance-test status. [Open an issue](../../issues) if either breaks for
+> you.
 
 ## What this is
 
@@ -140,6 +145,10 @@ prompt you to reauthenticate (paste a new token) rather than fail silently.
 
 ## Known v1 limitations
 
+- **Two acceptance tests are still open, honestly** (see the warning at the top and
+  the design doc's §6.3): no Lovelace dashboard card has actually been built from
+  these sensors yet (cosmetic risk only), and reauthentication after revoking your
+  Concept2 token has only been unit-tested, not tried live.
 - Deleting a workout on Concept2's side isn't detected instantly — it's caught on a
   periodic reconciliation (up to ~24h later), since Concept2's polling API has no
   "deleted items" feed (only its webhook does, which is out of scope for v1).

@@ -7,6 +7,37 @@ All notable changes to this project are documented here. Format loosely follows
 
 Nothing yet.
 
+## [1.0.0] - 2026-07-12
+
+First non-alpha release. No functional/code changes from 0.2.5-alpha - this
+tags the same confirmed-working code as v1.0.0 rather than another alpha,
+now that live testing has covered everything that matters most (see below).
+
+### What's confirmed, live, on a real account
+
+- Personal access token config flow, full history sync, real sensor and
+  challenge data (`v0.2.0`–`v0.2.3-alpha`).
+- The `concept2_new_result` event firing correctly on a genuinely new
+  workout, with the correct `milestone_crossed`/`longest_row_this_season`
+  payload data - confirmed 2026-07-12, after fixing a real bug
+  (`v0.2.4-alpha`) where it could silently never fire after a reload.
+- Diagnostics export redaction, verified against real exported files.
+- The "Last synced" sensor and "Sync now" button (`v0.2.5-alpha`).
+
+### Known gaps - documented, not silently skipped
+
+Two of the design doc's manual acceptance criteria (§6.3, A04/A06) are still
+open. This is a deliberate, informed decision to ship v1.0.0 anyway (see D6
+in the design doc), not a claim that every acceptance test passed:
+
+- **A04 - Lovelace card:** nobody has actually built a dashboard card from
+  these sensors yet. Low risk - the underlying sensor values themselves are
+  confirmed correct via the entity list directly - but the rendering itself
+  is unconfirmed.
+- **A06 - live reauth on token revocation:** the reauth flow is unit-tested
+  (`test_reauth_with_invalid_token_shows_form_error` and others) but has not
+  been tried against a real revoked token on a real instance.
+
 ## [0.2.5-alpha] - 2026-07-12
 
 ### Added

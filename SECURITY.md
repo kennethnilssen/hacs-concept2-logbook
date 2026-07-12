@@ -58,7 +58,7 @@ doc's Gate 4/5 exit criteria).
 | A05 Security Misconfiguration | Pinned dependency versions in manifest; CI validation (hassfest, HACS action); GitHub secret scanning + push protection enabled on the repo |
 | A06 Vulnerable & Outdated Components | Dependency versions pinned; GitHub vulnerability alerts enabled (verified via the GitHub API, not just asserted); minimum HA core version tracked deliberately |
 | A07 Identification & Auth Failures | Reauth flow triggered automatically on token revocation/expiry (401 -> `ConfigEntryAuthFailed`); user-generated token, not application-managed - see the scope caveat above |
-| A08 Software & Data Integrity | No runtime code download; dependency review. **Updated 2026-07-12:** `v0.2.3-alpha` is the latest release, and the first not marked a GitHub pre-release (auth, full history sync, and real sensor data confirmed working against a real account). Still explicitly `alpha`, not the "manual testing complete" v1.0.0 release that Gate 5 refers to - see README/CHANGELOG. |
+| A08 Software & Data Integrity | No runtime code download; dependency review. **Updated 2026-07-12:** `v1.0.0` tagged - auth, full history sync, real sensor/challenge data, and `concept2_new_result` firing correctly are all confirmed live against a real account. Two acceptance tests remain open and are documented rather than silently skipped (Lovelace card never built; live reauth-on-revoke unit-tested only) - see the design doc's §6.3 (D6) and README. |
 | A09 Logging & Monitoring Failures | Structured logging with no tokens/PII; diagnostics redaction via HA's `async_redact_data` helper |
 | A10 SSRF | API base URLs are hardcoded constants; no user-supplied URLs are ever fetched |
 
