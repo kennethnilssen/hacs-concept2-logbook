@@ -7,6 +7,26 @@ All notable changes to this project are documented here. Format loosely follows
 
 Nothing yet.
 
+## [0.2.4-alpha] - 2026-07-12
+
+### Fixed
+
+- **`concept2_new_result` could silently never fire for a real user.**
+  `_initial_sync_done` was a plain in-memory flag on the coordinator object,
+  reset to `False` every time that object was reconstructed - which happens
+  on every integration reload and every Home Assistant restart, not just a
+  true first-ever install. `_last_synced_at`, `_results`, etc. are correctly
+  persisted and reloaded from the Store; this flag wasn't, so the first
+  refresh after any reload treated itself as "the initial sync" and
+  suppressed the event even for a genuinely new result. Found live: a
+  stakeholder did a real row, reloaded the integration to force an immediate
+  poll, and the event never fired - confirmed by reverting the fix and
+  re-running the new regression test, which fails without it (0 events
+  instead of 1). Now derived from `_last_synced_at is None`, captured before
+  the sync call that overwrites it - durable across reload/restart, matching
+  the actual intent ("initial full-history sync must not fire events", not
+  "every reload's first poll must not fire events").
+
 ## [0.2.3-alpha] - 2026-07-12
 
 No functional/code changes from 0.2.2-alpha - documentation only.

@@ -132,6 +132,57 @@ async def test_incremental_sync_fires_event_for_new_result_only(hass, aioclient_
     assert data.totals["meters_lifetime"] == 10000
 
 
+async def test_reload_does_not_suppress_event_for_new_result(hass, aioclient_mock):
+    """Regression: a coordinator reload (new in-memory instance, same entry/
+    store - e.g. an HA restart or the user reloading the integration) must not
+    treat a subsequent genuinely-new result as part of "the initial sync".
+    Only a true first-ever sync (no persisted last_synced_at) should suppress
+    events - that state must survive reconstruction, not live on an in-memory
+    flag that resets every time the coordinator object is recreated.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results",
+        json={
+            "data": [_result(1, date="2026-07-05 08:00:00")],
+            "meta": {"pagination": {"total_pages": 1}},
+        },
+    )
+    _mock_challenges(aioclient_mock)
+    coordinator = _make_coordinator(hass, entry=entry)
+    await coordinator.async_setup()
+    await coordinator._async_update_data()  # true first sync - persists state
+
+    # Simulate a reload: a brand-new coordinator instance for the same entry.
+    reloaded = _make_coordinator(hass, entry=entry)
+    await reloaded.async_setup()
+
+    events = []
+    hass.bus.async_listen(EVENT_NEW_RESULT, lambda event: events.append(event))
+
+    since = reloaded._last_synced_at
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(
+        f"{API_BASE_URL}/api/users/me/results?updated_after={since}",
+        json={
+            "data": [
+                _result(1, date="2026-07-05 08:00:00"),  # unchanged
+                _result(2, date="2026-07-05 09:00:00"),  # genuinely new
+            ],
+            "meta": {"pagination": {"total_pages": 1}},
+        },
+    )
+    _mock_challenges(aioclient_mock)
+
+    await reloaded._async_update_data()
+    await hass.async_block_till_done()
+
+    assert len(events) == 1
+    assert events[0].data["result"]["id"] == 2
+
+
 async def test_result_update_reflected_without_firing_event(hass, aioclient_mock):
     """T10: an edited result updates totals on next poll, without firing an event."""
     aioclient_mock.get(

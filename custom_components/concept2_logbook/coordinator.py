@@ -132,7 +132,6 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
         self._results: dict[str, dict[str, Any]] = {}
         self._last_synced_at: str | None = None
         self._last_full_sync_at: datetime | None = None
-        self._initial_sync_done = False
         self._consecutive_failures = 0
         self._backoff_until: datetime | None = None
 
@@ -178,6 +177,12 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
                 f"Backing off the Concept2 API until {self._backoff_until.isoformat()}"
             )
 
+        # Captured before _async_sync_results() runs, since it overwrites
+        # _last_synced_at - this must reflect "has this account ever synced
+        # before" (durable, survives reload/restart via the Store), not an
+        # in-memory flag that resets on every coordinator reconstruction.
+        was_first_sync = self._last_synced_at is None
+
         try:
             new_ids = await self._async_sync_results()
             current_challenge, upcoming_challenge = await self._async_sync_challenges()
@@ -195,10 +200,9 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
 
         totals = self._compute_totals()
 
-        if self._initial_sync_done:
+        if not was_first_sync:
             for result_id in new_ids:
                 self._async_fire_new_result_event(result_id, totals)
-        self._initial_sync_done = True
 
         return Concept2Data(
             last_result=self._most_recent_result(),
