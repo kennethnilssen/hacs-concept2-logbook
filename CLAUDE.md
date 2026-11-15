@@ -75,5 +75,5 @@ of implementing it.
 - Time values from the API are tenths of seconds — convert. Concept2 seasons run
   May 1 – April 30. Week aggregates use ISO weeks.
 - Initial full-history sync must not fire `concept2_new_result` events.
-- Repository layout, sensor list, and test cases: see the design doc §4.4, §3.1 F3,
+- Repository layout, functions, and test status: see the design doc §4.4, §3,
   and §6 — they are the specification.

@@ -1,478 +1,209 @@
-# Concept2 Logbook — Home Assistant HACS Integration
-## Project Charter, Solution Design & Test Plan (Stage-Gate Model)
+---
+owner: kennethnilssen
+last-verified: 2026-11-15
+---
 
-**Version:** 0.3 (Gate 1 closed; Gate 2 design reviewed, pending stakeholder sign-off)
-**Date:** 2026-07-05
-**Prepared with:** Claude (Anthropic)
-**Repository name (proposed):** `hacs-concept2-logbook`
+# Concept2 Logbook — design
+
 **Integration domain:** `concept2_logbook`
 **Display name:** Concept2 Logbook
 **Tagline:** This integration connects Concept2 Logbook to Home Assistant over API using the official Concept2 API protocol.
 
----
+This document describes the scope, the design and the test status of the integration.
+The decisions have their reasons in section 5. The dated changes are in section 8.
 
-## 1. Project Concept (Gate 0 — Idea)
+## 1. Purpose and scope
 
-Build a custom Home Assistant integration, distributed through HACS, that connects a
-user's Concept2 Logbook account to Home Assistant. The integration fetches workout
-results and statistics from the official Concept2 Logbook API and exposes them as
-Home Assistant entities (sensors and events), enabling:
+The integration connects a Concept2 Logbook account to Home Assistant. It reads results
+and challenges from the official Concept2 API and creates sensors and one event.
 
-- Visible metrics on Lovelace dashboards (last workout, totals, trends).
-- Automations triggered by new results or milestones (e.g. TTS announcement when a
-  personal best or distance goal is achieved).
+**Out of scope for version 1:**
 
-**Explicitly out of scope:** live/real-time rowing telemetry. Live data is visible on
-the PM5 while rowing and is served by existing Bluetooth solutions. This integration
-handles *logged results only*, after they sync to the Concept2 Logbook.
+- Live data from the PM5 over Bluetooth. Other integrations provide this.
+- Webhooks from Concept2. The integration polls.
+- Writing data to Concept2. The integration is read-only.
+- More than one Concept2 account in one config entry. Add one config entry for each
+  account.
+- Installation from the HACS default store. See section 7.
 
-**Gate 0 exit criteria:** Stakeholder confirms concept and out-of-scope boundary. ✅ (confirmed in chat)
+## 2. Constraints
 
----
+These constraints apply to every change. If a change breaks one of them, stop and report
+it. `CLAUDE.md` holds the binding text.
 
-## 2. Binding Constraints (Non-Negotiable)
+| # | Constraint | Source |
+| --- | --- | --- |
+| C1 | The repository follows the HACS requirements. | hacs.xyz |
+| C2 | The integration follows the Concept2 API documentation and terms. | log.concept2.com/developers/documentation |
+| C3 | The authentication is self-service and the user can revoke it at any time. The integration uses a personal access token. | Concept2 API documentation, OWASP |
+| C4 | The code is reviewable and states that Claude Code wrote it. The OWASP mapping in `SECURITY.md` stays true. | OWASP Top 10 |
 
-These constraints apply at every stage and every gate. A gate cannot be passed if any
-constraint is violated.
+## 3. Functions
 
-| # | Constraint | Source of truth |
-|---|------------|-----------------|
-| C1 | Full compliance with HACS requirements and usage documentation | https://www.hacs.xyz/docs/use/ and HACS publishing docs |
-| C2 | Full compliance with the Concept2 Logbook API documentation, terms, and approval process | https://log.concept2.com/developers/documentation/ |
-| C3 | Security by design: self-service authentication, user can revoke at any time from their Concept2 profile. **Amended 2026-07-11 (D5):** v1.0 uses Concept2's personal access token (Edit Profile → Applications → Concept2 Logbook API) rather than full OAuth2 client registration - confirmed via the stakeholder's own account that the "API Key portal" client-registration flow is the app-developer path for multi-user distribution, not what an individual sees on their own profile. Scope is set by Concept2's UI at token-generation time and is **not visible or restrictable by this integration's code** (unlike the OAuth2 design, which enforced `user:read,results:read` explicitly on every token request) - a documented, accepted limitation, not a code-enforced guarantee. OAuth2 Authorization Code flow deferred to v1.x. | Concept2 API docs + OWASP + stakeholder account verification |
-| C4 | Auditability: code must be transparent, reviewable, and state that it was created with Claude Code; OWASP-aligned secure coding practices throughout | OWASP ASVS / Top 10 |
+| # | Function |
+| --- | --- |
+| F1 | A config flow in the Home Assistant interface, where the user pastes a personal access token. |
+| F2 | The coordinator polls the results every 15 minutes with the filter `updated_after`. |
+| F3 | The sensors, listed in the [README](README.md#sensors). The totals are computed locally, because the API gives no totals. |
+| F4 | The event `concept2_new_result` for each new result. The first sync does not fire it. |
+| F5 | The reauthentication flow when the token is revoked or invalid. |
+| F6 | An options flow for the polling interval. The minimum is 10 minutes. |
 
----
+The sensor "Last synced" and the button "Sync now" are diagnostic entities. The button
+calls `async_request_refresh()` and does not reload the config entry.
 
-## 3. Scope Definition (Gate 1 — Scoping)
+The version supports the RowErg, the SkiErg and the BikeErg. The average pace is per
+500 m, and per 1000 m for the BikeErg.
 
-### 3.1 In scope (v1.0)
+## 4. Design
 
-**Functional**
-- F1: Config flow in the HA UI (no YAML required) that guides the user through
-  self-service Concept2 authorization via OAuth2.
-- F2: Periodic polling of the Concept2 Logbook API for the authenticated user's
-  results, using incremental sync (`updated_after`) to minimize API load.
-- F3: Sensor entities (agreed 2026-07-05, closes D1):
-  - **Last workout:** distance (m), time (duration), average pace (/500m; /1000m for BikeErg),
-    stroke rate (spm, stroke count as attribute), calories, average heart rate
-    (min/max/ending as attributes), drag factor, date (timestamp). Attributes on the
-    distance sensor: machine type, workout type, source, verified/ranked, comments.
-  - **Totals & counters (computed locally — the API provides no ready-made totals):**
-    meters today / this week (ISO week) / this month / this season (Concept2 season =
-    May 1 – April 30) / lifetime; workouts this week / this month; calories this month;
-    workout streak (consecutive days).
-  - **Binary sensor:** "Workout done today".
-  - **Challenges (public endpoints, no auth):** current challenge and upcoming
-    challenge (name as state; end date, description as attributes).
-  - **Diagnostic entities (added 2026-07-12, Gate 4 stakeholder request):** a
-    "Last synced" timestamp sensor (integration health - when did the
-    coordinator last successfully poll, distinct from workout data), and a
-    "Sync now" button that calls `coordinator.async_request_refresh()`
-    directly rather than reloading the whole config entry - lighter weight,
-    and correctly respects the coordinator's own rate-limit backoff.
-  - Lifetime totals require an optional full-history sync on first setup (paginated,
-    250 results/page); user opts in during config flow.
-  - Primary machine type: **RowErg** (stakeholder hardware: RowErg PM5 Standard).
-    Design remains machine-type-aware so SkiErg/BikeErg data creates parallel sensors
-    automatically if it ever appears.
-  - Deferred to v1.1: personal bests over standard distances, per-split sensors.
-- F4: An HA event (`concept2_new_result`) fired when a new result is detected,
-  carrying the result payload plus computed extras (e.g. round-number lifetime
-  milestone crossed, longest row this season) — this is the automation/TTS hook.
-  Initial full-history sync must NOT fire events (no event storm on setup).
-- F5: Reauthentication flow when tokens expire or are revoked (HA reauth pattern).
-- F6: Options flow: polling interval (sane default, e.g. 10–15 min; enforce a minimum
-  to be a good API citizen).
+### 4.1 Data flow
 
-**Non-functional**
-- N1: HACS-compliant repository structure (manifest.json, hacs.json, versioned GitHub
-  releases, README with install/setup instructions).
-- N2: Async, non-blocking code following current Home Assistant development standards
-  (DataUpdateCoordinator, CoordinatorEntity, config entries).
-- N3: OWASP-aligned security (see §5).
-- N4: English UI strings with HA translation scaffolding (`strings.json` /
-  `translations/en.json`); Norwegian translation as a stretch goal.
-- N5: Attribution notice in README and source headers: built with Claude Code,
-  human-reviewed, security-focused.
+The diagram shows one poll. The coordinator keeps all results in a local store, and all
+totals come from this store.
 
-### 3.2 Out of scope (v1.0)
-
-- Live PM5 telemetry (Bluetooth) — permanently out of scope for this project.
-- Webhooks (real-time push of new results) — deferred to v1.1+; requires an
-  externally reachable HA endpoint and adds attack surface. Polling first.
-- Writing data to Concept2 (no write scopes are requested — read-only by design).
-- Multi-user support in a single config entry — v1 supports one Concept2 account per
-  config entry; multiple entries can be added for household members.
-- Submission to the HACS *default* store — v1 ships as a HACS custom repository;
-  default-store submission is a v1.x milestone once stable.
-
-### 3.3 Stakeholder / user stories
-
-- As a rower, I want my latest workout on my dashboard so I can see my progress at a glance.
-- As a home automator, I want an event when a new result arrives so I can trigger a TTS
-  announcement (e.g. "New personal record!") or light scene.
-- As a security-conscious user, I want to authorize with my own Concept2 account,
-  grant only read permissions, and be able to revoke access at any time.
-- As an auditor/reviewer, I want to read the code and verify no credentials are logged,
-  stored insecurely, or transmitted anywhere except api.concept2.com over TLS.
-
-**Gate 1 exit criteria:** Stakeholder signs off on scope, sensor list, and deferrals.
-
----
-
-## 4. Solution Design (Gate 2 — Design)
-
-### 4.1 Architecture overview
-
-```
-Concept2 Logbook API (OAuth2, HTTPS)
-        │  polling (updated_after)
-        ▼
-API Client (thin async wrapper, aiohttp via HA session)
-        ▼
-DataUpdateCoordinator (single fetch cycle, shared by all entities)
-        ▼
-Local result store (HA `Store` helper, JSON — raw results keyed by result id;
-  see §4.1.1 — required to recompute totals correctly on edits/deletes, not
-  just accumulate on new results)
-        ▼
-├── Sensor entities (last workout, totals — derived from the local store)
-├── Event: concept2_new_result (automation hook, fired only for ids not
-│   previously seen in the local store)
-└── Diagnostics (redacted — for support/audit)
+```mermaid
+flowchart TD
+    P([Poll every 15 minutes]) --> A[Call the Concept2 Logbook API]
+    A --> V{Token valid?}
+    V -->|No| R([Start reauthentication])
+    V -->|Yes| S[Update the result store]
+    S --> T[Compute the totals and update the sensors]
+    S --> N{New result?}
+    N -->|Yes| E([Fire concept2_new_result])
+    N -->|No| D([Done])
 ```
 
-#### 4.1.1 Local result store (added on review — closes a correctness gap)
+If the API answers with 429 or 5xx, the coordinator waits before the next call. The wait
+starts at 60 seconds, doubles after each failure and stops at 3600 seconds. A
+`Retry-After` header replaces the computed wait.
 
-The original design implied totals (lifetime meters, season meters, streaks) would
-be accumulated incrementally as new results arrive. That breaks under §4.3's own
-requirement to "handle deletes/updates of results gracefully": if a historical result
-is edited or deleted upstream after it was already folded into a running total, a
-stateless coordinator has no way to correct that total — it only ever sees the delta
-since `updated_after`.
+### 4.2 Local result store
 
-Fix: the coordinator persists raw results (id, timestamp, distance, time, etc. — not
-tokens or PII beyond what the API already returns) in a local `homeassistant.helpers.storage.Store`
-file scoped to the config entry. Every poll upserts changed/new results into the store
-by id and removes any the API reports deleted; **all aggregate sensors are recomputed
-from the store**, not accumulated in memory. This is a few dozen lines of code, keeps
-the coordinator otherwise stateless-feeling, and is the only way to make T10 (result
-updated/deleted upstream) actually true for the totals sensors, not just the
-last-workout sensor. See new test T15 in §6.1.
+The coordinator saves each result with its identifier in a Home Assistant `Store` file for
+the config entry. Each poll adds or changes results by identifier. A full poll every
+24 hours removes the results that Concept2 has deleted. The sensors compute the totals
+from the store and not from the last poll.
 
-### 4.2 Authentication design (C3)
+### 4.3 Token states
 
-**SUPERSEDED 2026-07-11 by D5** — v1.0 uses a Concept2 personal access token
-instead of the OAuth2 design below. Kept here as historical record, not deleted:
-the OAuth2 design was fully built (Gate 3 step 3) and worked, but the stakeholder
-confirmed via their own account that Concept2's "API Key portal" client
-registration is the app-developer path for multi-user distribution, not what an
-individual sees on their own profile - the personal access token is what
-Concept2 actually intends here. See §4.2.1 below for the current design, and D5
-in §9 for the full rationale and the accepted scope-visibility tradeoff.
+If the token is revoked, the next poll gets a 401 response and the user pastes a new token.
 
-- OAuth2 Authorization Code flow using Home Assistant's built-in
-  `config_entry_oauth2_flow` and **Application Credentials** platform.
-- Scopes requested: `user:read results:read` — nothing more (least privilege).
-- Each installing user registers their own API client in the Concept2 developer
-  self-service portal and enters their client ID/secret into HA's Application
-  Credentials UI. Consequence: no shared secret is ever published in the repository.
-- Tokens are stored by Home Assistant's config entry storage (never in plaintext
-  custom files, never logged). Refresh token rotation is handled by HA's OAuth2
-  session helper.
-- README documents, with screenshots, the exact self-service steps including the
-  Concept2 consent screen and how to revoke access (Settings → Applications).
-- Development happens against the Concept2 **development server** first; switching to
-  production follows Concept2's approval process (C2).
-- **Redirect URI (added on review):** uses Home Assistant's standard external OAuth
-  callback (`/auth/external/callback`), routed through the My Home Assistant
-  redirection service for instances without a stable public HTTPS URL — the same
-  mechanism HA core OAuth integrations use, not anything custom-built. **Risk to
-  verify in Gate 3:** confirm Concept2's dev-server client registration accepts this
-  redirect pattern before assuming the config flow will complete end-to-end.
-- **CSRF/state protection (added on review):** provided by HA's
-  `config_entry_oauth2_flow` base class (the `state` parameter is generated and
-  validated automatically) — the integration does not implement or need any custom
-  CSRF handling.
-- **PKCE (considered on review, not adopted):** not added. This is a confidential
-  client — the client secret is held server-side by HA, entered once via Application
-  Credentials, never exposed to a browser/public client. PKCE exists to protect public
-  clients that can't hold a secret; adding it here would be complexity without a
-  matching threat. Revisit only if Concept2's API documentation mandates it.
-
-#### 4.2.1 Current design: personal access token (D5, 2026-07-11)
-
-- Plain `ConfigFlow` (not `AbstractOAuth2FlowHandler`), single password-masked
-  field (`TextSelector`, `type: password`) for a Concept2 personal access token.
-- User generates the token themselves at Concept2 profile → Edit Profile →
-  Applications → Concept2 Logbook API - no client registration, no redirect URI,
-  no Application Credentials platform involved at all.
-- Validated by calling `GET /api/users/me` with the token as a Bearer header;
-  `Concept2AuthError` (401) → `invalid_auth`, any other `Concept2ApiError`
-  (including wrapped network/timeout failures, see below) → `cannot_connect`,
-  anything unexpected → `unknown` (logged server-side via `_LOGGER.exception`,
-  never shown raw to the user).
-- Unique ID is the Concept2 user id returned by that call, exactly as before -
-  reauth still matches entries correctly, `wrong_account` still guards against
-  authenticating a second entry with a different Concept2 account's token.
-- **Found while implementing, not anticipated in the brief:** `api.py` never
-  actually caught raw `aiohttp` connection/timeout failures - they would have
-  bubbled up unwrapped and landed in the config flow's generic `except
-  Exception` → `unknown`, not `cannot_connect` as intended. Fixed by wrapping
-  the request in `api.py` itself (`ClientError`/`TimeoutError` → `Concept2ApiError`),
-  so `cannot_connect` means what it says regardless of caller.
-- **Accepted tradeoff (see §2 C3 and SECURITY.md):** the token's scope is set by
-  Concept2's own page at generation time and cannot be inspected, restricted, or
-  verified by this integration's code - unlike the OAuth2 design above, which
-  forced `user:read,results:read` explicitly on every token request. This
-  integration still only ever issues GET requests (no write-capable method
-  exists anywhere in `api.py`), so it cannot itself write to Concept2 regardless
-  of the token's actual scope, but this is a narrower guarantee than the OAuth2
-  design provided and is documented as such rather than presented as equivalent.
-- Options flow (polling interval, F6) is unchanged - it never touched auth.
-
-### 4.3 Data flow & API citizenship (C2)
-
-- One coordinator per config entry; default poll every 10–15 minutes.
-- Incremental sync via `updated_after` filter; full sync only on first setup.
-- Respect pagination; cap page size per API docs.
-- Handle deletes/updates of results gracefully via the local result store (§4.1.1) —
-  results carry updated timestamps that drive upsert/remove into the store.
-- **Back-off, corrected on review:** `DataUpdateCoordinator` does **not** provide
-  exponential backoff out of the box — that was an inaccurate assumption. The
-  coordinator's `_async_update_data` must implement its own consecutive-failure-counted
-  exponential backoff on HTTP 429/5xx (honoring a `Retry-After` header when present)
-  before raising `UpdateFailed`; this is custom code, not a framework freebie, and
-  needs its own test coverage (T07).
-- **Dev/production base URL (resolved at Gate 3 step 2, 2026-07-05 — supersedes
-  the Gate 2 review note above):** `API_BASE_URL` is a single hardcoded constant in
-  `const.py`, never a user- or config-flow-supplied value (required by A10 — no
-  user-supplied URLs are ever fetched). Verified directly against Concept2's docs:
-  "If you are only reading data from the Logbook, you can develop against
-  production. If you are writing data to the Logbook, before using the live API,
-  you must first develop against the development server." Since this integration
-  requests no write scopes and `api.py` implements no write-capable methods,
-  `API_BASE_URL` defaults to **production** (`https://log.concept2.com`), not the
-  dev server — this is what Concept2's own terms require for a read-only client,
-  not a relaxation of C2. `https://log-dev.concept2.com` stays defined as a
-  separate constant, unused by default. See `CLAUDE.md` C2 for the recorded
-  decision.
-- **Scope must never be omitted from a token request (found verifying docs for
-  step 2 — critical for C3):** Concept2's docs state that if `scope` is omitted
-  from a `/oauth/access_token` call — including a **refresh** call — it silently
-  defaults to `user:read,results:write`, i.e. write access. Home Assistant's
-  default OAuth2 implementation does not resend `scope` on refresh automatically.
-  Build step 3 (`application_credentials.py`) must override the token request to
-  always explicitly attach `scope=user:read,results:read`, on both the initial
-  exchange and every refresh, with a dedicated regression test — never rely on
-  the default.
-
-### 4.4 Repository structure (C1)
-
-```
-hacs-concept2-logbook/
-├── custom_components/concept2_logbook/
-│   ├── __init__.py            # setup, coordinator wiring
-│   ├── manifest.json          # domain, version, deps, codeowners, iot_class: cloud_polling
-│   ├── config_flow.py         # OAuth2 config + reauth + options flow
-│   ├── application_credentials.py
-│   ├── api.py                 # thin Concept2 API client
-│   ├── coordinator.py
-│   ├── sensor.py
-│   ├── diagnostics.py         # redacted diagnostics export
-│   ├── const.py
-│   ├── strings.json
-│   └── translations/en.json
-├── hacs.json
-├── README.md                  # install, self-service OAuth guide, security notes, attribution
-├── SECURITY.md                # threat model summary, reporting, OWASP alignment
-├── LICENSE (MIT)
-├── CLAUDE.md                  # working agreement for Claude Code (see §7)
-└── .github/workflows/         # hassfest + HACS validation + lint CI
+```mermaid
+flowchart LR
+    V([Valid]) -->|Concept2 returns 401| I([Invalid or revoked])
+    I -->|Reauthentication starts| W[User pastes a new token]
+    W -->|Token belongs to the same account| V
+    W -->|Token belongs to another account| X([Rejected: wrong_account])
 ```
 
-### 4.5 Security design (C4 — OWASP alignment)
+The config flow checks a new token with `GET /api/users/me`. It maps 401 to
+`invalid_auth` and a network error to `cannot_connect`. The Concept2 user identifier is
+the unique identifier of the config entry.
 
-Mapped to OWASP Top 10 (2021) categories relevant to this integration:
+### 4.4 Files
 
-| OWASP | Measure |
-|-------|---------|
-| A01 Broken Access Control | Read-only by design (no write-capable code path exists, regardless of token scope); no privileged operations; per-user personal access token (**updated 2026-07-11, D5** — was "per-user OAuth") |
-| A02 Cryptographic Failures | TLS-only endpoints; tokens stored via HA's standard config-entry storage — **corrected on review:** this is the same protection level as every other HA core integration's tokens, not separate encryption added by this integration; at-rest protection ultimately depends on the host's file permissions/disk encryption, which is outside this integration's control and should be a one-line honest note in SECURITY.md rather than an implied guarantee. No secrets in repo, logs, or diagnostics. |
-| A03 Injection | No dynamic query construction; all params URL-encoded via aiohttp; API responses validated before use |
-| A04 Insecure Design | Least privilege, polling over inbound webhooks in v1, threat model in SECURITY.md |
-| A05 Security Misconfiguration | Pinned dependency versions in manifest; CI validation (hassfest, HACS action) |
-| A06 Vulnerable & Outdated Components (added on review — was missing from this table entirely, undermining the "OWASP mapping stays true" claim in C4) | Dependency versions pinned in `manifest.json`; GitHub Dependabot/security alerts enabled on the repo; minimum HA core version tracked and bumped deliberately, not left implicit |
-| A07 Identification & Auth Failures | **Updated 2026-07-11, D5:** reauth flow triggered automatically on token revocation/expiry (401 → `ConfigEntryAuthFailed`); user-generated personal access token, not application-managed OAuth2 - see §4.2.1's scope-visibility tradeoff |
-| A08 Software & Data Integrity | No runtime code download; dependency review. **No tagged release exists yet** (verified 2026-07-05 via `gh api`) - signed/tagged GitHub releases are the plan starting at v1.0.0 (Gate 5), not a current fact; corrected here after being stated as present tense |
-| A09 Logging & Monitoring Failures | Structured logging with **no tokens/PII**; diagnostics export redacts identifiers using HA's built-in `homeassistant.components.diagnostics.async_redact_data` helper (added on review — reuses a reviewed HA core mechanism instead of ad hoc string matching, which is where redaction bugs usually creep in) |
-| A10 SSRF | API base URLs are constants; no user-supplied URLs are fetched |
+The code is in `custom_components/concept2_logbook/`. `api.py` is the API client,
+`coordinator.py` holds the poll and the store, and `sensor.py`, `binary_sensor.py` and
+`button.py` create the entities. `config_flow.py` holds the setup, the reauthentication
+and the options. `diagnostics.py` redacts the export. The tests are in `tests/`.
 
-Audit support: every release tagged; CHANGELOG maintained; code comments explain
-security-relevant decisions; SECURITY.md states AI-assisted origin (Claude Code) and
-the human review requirement before every release.
+### 4.5 Security
 
-**Review log:** Senior-HA-developer + security review performed 2026-07-05. Findings
-and fixes are inlined above, marked "added/corrected on review" (local result store
-for correct totals recompute; redirect URI and CSRF/PKCE notes; corrected backoff and
-token-storage claims; resolved dev/prod base URL mechanism; added missing OWASP A06
-row; diagnostics redaction now references HA's built-in helper). No changes were made
-that touch C1–C4 themselves — all changes reinforce or correct the design's compliance
-with them.
+`SECURITY.md` holds the threat model and the OWASP mapping.
 
-**Gate 2 exit criteria:** Stakeholder approves architecture, auth model
-(per-user client credentials), repo layout, and security design. **Status: pending
-your sign-off** — the review above is not itself an approval.
+## 5. Design decisions
 
----
+These sections may use longer sentences, because the reasons need them.
 
-## 5. Build (Gate 3 — Development)
+**D1. The sensor list.** The sensors are those in the README. Personal bests and sensors for
+each split are not part of version 1. *Reason:* the list covers what a dashboard and an
+automation need. *Rejected:* more sensors before real use shows what is missing.
 
-Executed in Claude Code, in this order:
+**D2. Domain and name.** The domain is `concept2_logbook` and the display name is
+"Concept2 Logbook". *Reason:* the domain matches the display name. *Rejected:* `concept2`.
 
-1. Repo scaffold + CI (hassfest, HACS validation action, ruff lint) — fail fast on C1.
-2. API client against Concept2 **dev server** + unit tests with mocked responses.
-3. OAuth config flow + application credentials + reauth.
-4. Coordinator + sensors + new-result event.
-5. Options flow, diagnostics (redacted), translations.
-6. README, SECURITY.md, CHANGELOG, screenshots.
+**D3. Licence.** The licence is MIT. *Reason:* MIT is permissive. *Rejected:* Apache-2.0.
 
-**Gate 3 exit criteria:** CI green (lint + hassfest + HACS validation + unit tests);
-all v1 functional requirements implemented; no TODOs in security-relevant code.
+**D4. Public repository.** The repository has been public since 2026-07-05. *Reason:* the
+HACS validation checks files that a private repository does not serve. *Rejected:* stay
+private until the manual tests.
 
-**Status: met, 2026-07-05.** All four CI checks pass on the current commit
-(steps 1-5 complete; step 6 is docs-only, no code). One note on "HACS
-validation green": while the repo was private (D4), 3-5 of 9 HACS checks
-failed per push - verified via `curl` that this was GitHub's raw-content
-endpoint returning 404 for private repos, not a real defect in our code
-(confirmed by re-running all 9 historical validation runs after
-going public 2026-07-05: every one dropped to exactly 1/9 failing -
-`hacsjson` and `integration_manifest` now pass). The one remaining failure,
-`brands`, was initially (and incorrectly) assumed to only apply to
-default-store submissions, based on an AI-summarized doc read rather than
-the actual validator source - **corrected 2026-07-05** after reading
-`hacs/integration`'s `custom_components/hacs/validate/brands.py` directly:
-the check runs unconditionally for any `integration`-category repository,
-custom or default-store. Fixed properly instead of excused: added a local
-`custom_components/concept2_logbook/brand/icon.png` (a plain placeholder,
-not a designed logo - see README) which the validator accepts as one of its
-two valid paths (the other being a domain listing in
-home-assistant/brands). `ignore: brands` removed from `hacs.yml`
-accordingly. F1-F6 all implemented and tested (§6.1); zero TODO/FIXME/XXX
-in any source file (verified by grep across the full tree).
+**D5. A personal access token and not OAuth2.** The user creates a token at Concept2 and pastes
+it. *Reason:* an individual user sees only the personal token on the profile page. The OAuth
+client registration is the path for apps with many users. *Accepted trade-off:* Concept2 sets
+the scope of the token, and the integration cannot read or restrict it. The integration
+makes only `GET` requests, so it cannot write. *Rejected:* OAuth2 with Application Credentials.
+It was built and replaced. If OAuth2 returns, send `scope=user:read,results:read` in every
+token request, including a refresh. Concept2 gives write access when the scope is missing.
 
----
+**D6. Version 1.0.0 with two open tests.** The integration got the tag `v1.0.0` on
+2026-07-12 while two manual tests were open (the dashboard and the reauthentication with a
+real revoked token). *Reason:* the event `concept2_new_result` and the main functions were
+confirmed, and the two open tests carried low risk. Both tests passed the same day (`v1.0.1`
+and `v1.0.2`). *Rejected:* wait for all tests.
 
-## 6. Test & Verification (Gate 4)
+**D7. The production API.** `API_BASE_URL` is the production address. *Reason:* the Concept2
+documentation allows a client that only reads to use production. *Rejected:* the development
+server, which holds a separate database. The base URL is a constant and the user cannot set
+it.
 
-### 6.1 Automated test cases (pytest, mocked API)
+**D8. Our own back-off.** The coordinator has its own back-off for 429 and 5xx. *Reason:* the
+`DataUpdateCoordinator` class has no exponential back-off. *Rejected:* a fixed interval.
 
-**Corrected 2026-07-12 for D5:** T01-T03 originally described the OAuth2 design
-this project replaced (mock consent screen, token refresh). Personal access
-tokens don't refresh - they're just valid until revoked - so those rows are
-rewritten to describe what's actually tested now, rather than left stale.
+**D9. A local store for the totals.** See section 4.2. *Reason:* a total that is only added to
+cannot follow a result that Concept2 edits or deletes. *Rejected:* totals in memory.
 
-| ID | Test case | Expected result |
-|----|-----------|-----------------|
-| T01 | Config flow happy path (valid personal access token) | Config entry created; coordinator starts |
-| T02 | Config flow with an invalid/rejected token | Flow shows `invalid_auth`; nothing stored |
-| T03 | Network/timeout error during token validation | Flow shows `cannot_connect`, not a raw exception |
-| T04 | Token revoked at Concept2 | Reauth flow triggered; entities marked unavailable, not crashed |
-| T05 | First sync with N results | Sensors populated; no `concept2_new_result` event storm (initial sync suppressed) |
-| T06 | Incremental sync detects 1 new result | Exactly one `concept2_new_result` event fired with correct payload |
-| T07 | API returns 429 / 5xx | Coordinator backs off; entities keep last known state; recovery on next success |
-| T08 | Malformed/unexpected API payload | Logged (redacted), gracefully skipped; no exception to HA core |
-| T09 | Pagination across multiple pages | All results processed exactly once |
-| T10 | Result updated/deleted upstream | Sensor state reflects change on next poll |
-| T11 | Log output scan | No token, client secret, or e-mail address appears in any log line |
-| T12 | Diagnostics export | Tokens and personal identifiers redacted |
-| T13 | Options flow: polling interval below allowed minimum | Rejected with validation error |
-| T14 | Unload/reload config entry | Clean teardown, no orphaned listeners |
-| T15 | *(added on review)* Historical result edited/deleted upstream after being counted in a total | Lifetime/season/streak sensors recompute correctly from the local result store (§4.1.1), not just from the latest poll's delta |
+**D10. No webhooks.** *Reason:* a webhook needs a Home Assistant address that Concept2 can reach
+from the internet, and this adds an attack surface. *Rejected:* a webhook in version 1.
 
-### 6.2 Compliance verification
+**D11. A release for each change that users must see.** A documentation change that must show
+as the latest release also gets a version. *Reason:* HACS and GitHub choose the latest release
+from the tags, so a change without a tag stays hidden. HACS also cannot install an update
+without a tag. *Rejected:* releases only for code changes, and updates from an untagged commit.
 
-| ID | Check | Method |
-|----|-------|--------|
-| V01 | HACS requirements (C1) | HACS validation GitHub Action passes; manual checklist vs hacs.xyz docs |
-| V02 | HA integration quality | `hassfest` action passes |
-| V03 | Concept2 API terms (C2) | Manual review of docs vs implementation; dev-server testing before production request |
-| V04 | OWASP mapping (C4) | Security review checklist in SECURITY.md walked through and signed off per release |
+## 6. Verification
 
-### 6.3 Manual acceptance tests (on stakeholder's live HA)
+### Automated tests
 
-**A02 corrected 2026-07-12 for D5** (originally described an OAuth2 consent
-screen this project no longer has).
+`pytest` runs 57 tests with a mocked API. They cover the config flow, the reauthentication,
+the first sync and the new-result event, back-off, pagination, edited and deleted results,
+the diagnostics, the options flow and the redaction of the token. The coverage is 99%. CI
+runs ruff, hassfest, the HACS validation, CodeQL and the tests.
 
-| ID | Scenario | Acceptance criterion | Status at v1.0.0 |
-|----|----------|----------------------|-------------------|
-| A01 | Install via HACS custom repository | Install + restart + config flow completes in < 10 min following README only | ✅ Confirmed 2026-07-11 |
-| A02 | Authorize with a real Concept2 account, personal access token | Token accepted; entities appear | ✅ Confirmed 2026-07-11 |
-| A03 | Row a workout, sync via ErgData | New result visible in HA within one polling cycle; event fired | ✅ Confirmed 2026-07-12, incl. correct `milestone_crossed`/`longest_row_this_season` payload data |
-| A04 | Build Lovelace card from sensors | Metrics render correctly | ✅ Confirmed 2026-07-12 - `docs/example-dashboard.yaml` pasted into a real dashboard, rendered cleanly with real data (totals, last workout incl. correct mm:ss template math, challenges, sync controls), no errors |
-| A05 | Automation on `concept2_new_result` (design doc originally said TTS specifically) | Automation fires with workout data | ✅ Confirmed 2026-07-12 via a persistent-notification automation - proves the trigger mechanism; a TTS action specifically wasn't tried, but is just a different action on the same trigger |
-| A06 | Revoke access from Concept2 Settings → Applications | HA prompts reauth; no errors flood the log | ✅ Confirmed 2026-07-12 - revoked live, reload surfaced `Concept2 token invalid or revoked` via the reauth flow exactly as designed (not a crash or silent failure), a freshly generated token was accepted, and Home Assistant reported "Reauthentication was successful" |
+### Manual tests on a real instance
 
-**Gate 4 exit criteria:** All T/V/A cases pass; stakeholder acceptance recorded.
-**Met in full 2026-07-12.** Originally tagged v1.0.0 with A04 and A06 still
-open (stakeholder decision, D6) - both were confirmed live later the same
-day. All of T01-T15 (automated), V01-V04 (compliance), and A01-A06 (manual)
-now pass. See CHANGELOG.md's `[1.0.0]`/`[1.0.1]`/`[1.0.2]` entries for the
-timeline.
+The author ran these tests on one real Home Assistant instance and one real Concept2 account.
 
----
+| Test | Result | Date |
+| --- | --- | --- |
+| Install through a HACS custom repository and add the integration | Passed | 2026-07-11 |
+| Paste a personal access token and sync the history | Passed | 2026-07-11 |
+| Row a result. The result and the event `concept2_new_result` appear | Passed | 2026-07-12 |
+| An automation on the event sends a notification | Passed | 2026-07-12 |
+| Paste `docs/example-dashboard.yaml` into a dashboard | Passed | 2026-07-12 |
+| Revoke the token at Concept2. The reauthentication starts and a new token works | Passed | 2026-07-12 |
 
-## 7. Release & Publication (Gate 5)
+The first real test of the event found that it did not fire after a reload of the
+integration. The fix is in `1.0.0` (see the [changelog](CHANGELOG.md)).
 
-1. Tag v1.0.0 GitHub release with release notes and checksums.
-2. Publish as HACS **custom repository**; README explains adding it.
-3. Announce for community testing (HA Community forum thread).
-4. Collect feedback → v1.x backlog (webhooks, more sensors, translations,
-   HACS default-store submission, HA brands submission).
+## 7. Open items
 
-**Gate 5 exit criteria:** Public release live; installation verified from a clean HA instance.
+These items are not decided.
 
----
+1. **The icon.** The icon in `brand/` is a placeholder. A final icon is in `assets/logo/`.
+   The decision is to use it, and the wiring is not done.
+2. **The tagline in the README.** The README opening sentence and the tagline above are not
+   the same sentence. Decide if the tagline goes into the README.
+3. **The HACS default store.** The integration is a custom repository. The submission to
+   the default store waits. HACS needs a full release, a passing HACS action and a brand
+   icon, and the review can take months.
 
-## 8. Requirements for the Claude Code Collaboration
+## 8. Change log
 
-These become the project's `CLAUDE.md` working agreement:
-
-1. **Constraints C1–C4 are law.** If a requested change would conflict with HACS
-   rules, Concept2 API terms, or the security design, stop and flag it instead of
-   implementing it.
-2. **Stage-gate discipline.** Work proceeds in the gate order above; do not start a
-   later stage's work while the current gate is open without explicit approval.
-3. **Explore → Plan → Implement → Commit.** Present a plan (plan mode) before
-   non-trivial changes; the stakeholder approves diffs in Ask-permissions mode.
-4. **Security first.** Never write code that logs tokens/secrets/PII; never commit
-   credentials; treat all API responses as untrusted input.
-5. **Test with the code.** Every functional change ships with/updates its tests;
-   CI must stay green.
-6. **Small commits, clear messages,** conventional-commit style, so the audit trail
-   (C4) is readable.
-7. **Honest attribution.** Maintain the "built with Claude Code, human-reviewed"
-   notice in README and SECURITY.md.
-
-### Stakeholder responsibilities (you)
-
-- Register the API client in the Concept2 developer portal (self-service) and manage
-  the dev→production approval request with Concept2.
-- Review and approve at each gate; run manual acceptance tests A01–A06 on your HA.
-- Own the GitHub repository and releases.
-
----
-
-## 9. Open Decisions (need your answer before Gate 1 closes)
-
-| # | Decision | Options | Resolution |
-|---|----------|---------|----------------|
-| D1 | Final sensor list | **CLOSED 2026-07-05** — sensor set per §3.1 F3; PBs and per-split sensors deferred to v1.1 | — |
-| D2 | Integration domain + display name | `concept2_logbook` vs `concept2`; display name/tagline | **CLOSED 2026-07-05** — domain: `concept2_logbook`; display name: "Concept2 Logbook"; tagline: "This integration connects Concept2 Logbook to Home Assistant over API using the official Concept2 API protocol." **Wording refined 2026-07-12:** the GitHub repo's About description (a separate setting, not in any repo file) still had this original tagline verbatim, unlike README's own intro line which had since been polished - tightened to "Home Assistant integration for Concept2 Logbook — workout sensors and automation events, read-only." Same meaning, no repeated "API...API protocol" and no throat-clearing "This integration" opener. |
-| D3 | License | MIT vs Apache-2.0 | **CLOSED 2026-07-05** — MIT |
-| D4 | Repo visibility during build | Private until Gate 4, then public | **CLOSED 2026-07-05** — private through Gate 3's build steps; made public 2026-07-05 on stakeholder instruction, ahead of Gate 4's manual acceptance testing (A01-A06), specifically to unblock full HACS validation (see Gate 3 exit criteria note above). Gate 4 itself is not yet started. |
-| D5 | Auth mechanism for v1.0 | OAuth2 Authorization Code (as originally built, §4.2) vs Concept2 personal access token | **CLOSED 2026-07-11** — personal access token (Edit Profile → Applications → Concept2 Logbook API), replacing the OAuth2 design built in Gate 3 step 3. Rationale: the stakeholder generated a token and confirmed the OAuth "API Key portal" client-registration flow is the app-developer path for multi-user distribution, not what an individual sees on their own profile - the personal token is what Concept2 actually intends for a single-user personal install like this one. Accepted tradeoff: token scope is set by Concept2's UI and not visible/restrictable by our code (§4.2, C3 amendment above) - this is weaker than the OAuth2 design's code-enforced explicit scope, and is documented as such rather than presented as equivalent. OAuth2 deferred to v1.x, not deleted from history. |
-| D6 | Ship v1.0.0 with A04/A06 still open, or hold for full Gate 4 closure | Tag v1.0.0 now vs finish A04 (Lovelace card) and A06 (live reauth-on-revoke) first | **CLOSED 2026-07-12** — tag v1.0.0 now. By this point A01, A02, A03, and A05 were all confirmed live (§6.3), including the one item nothing else could substitute for: `concept2_new_result` firing correctly on a genuinely new result, with the correct `milestone_crossed`/`longest_row_this_season` payload. The stakeholder judged that sufficient, given A04 is cosmetic (Lovelace rendering; the underlying sensor values are already confirmed correct) and A06 (live token-revocation reauth) is unit-tested, not unverified logic. Explicitly not a claim that Gate 4 is 100% closed at the time - see the status table in §6.3. **Both gaps closed later the same day:** A04 confirmed (`v1.0.1`), then A06 confirmed live - revoked a real token, watched the reauth flow trigger correctly, accepted a fresh token successfully (`v1.0.2`). Gate 4 is now fully closed, not just accepted-with-gaps. |
-
-**Gate 1 exit criteria met 2026-07-05** — scope, sensor list (D1), domain/naming (D2), license (D3), and repo visibility (D4) all signed off. Gate 1 closed. D5 and D6 are post-Gate-3 amendments (D5 raised during Gate 4 prep 2026-07-11; D6 the Gate 4→5 transition call 2026-07-12), not Gate 1 items — recorded here to keep all numbered decisions in one place.
+| Date | Change |
+| --- | --- |
+| 2026-11-15 | Rewritten after `docs/WRITING-STANDARD.md`. The gate model and the old test lists are removed. The decisions D1 to D11 have reasons and rejected options. The text is compared with the code. |
+| 2026-07-12 | The tests A04 and A06 passed. The decision D6 is closed. The GitHub description is shortened. |
+| 2026-07-11 | The decision D5: a personal access token replaces OAuth2. |
+| 2026-07-05 | The repository is public (D4). The base URL is the production address (D7). |
