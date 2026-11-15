@@ -166,9 +166,9 @@ without a tag. *Rejected:* releases only for code changes, and updates from an u
 
 ### Automated tests
 
-`pytest` runs 57 tests with a mocked API. They cover the config flow, the reauthentication,
+`pytest` runs 58 tests with a mocked API. They cover the config flow, the reauthentication,
 the first sync and the new-result event, back-off, pagination, edited and deleted results,
-the diagnostics, the options flow and the redaction of the token. The coverage is 99%. CI
+the diagnostics, the options flow and the redaction of the token. The coverage is 100%. CI
 runs ruff, hassfest, the HACS validation, CodeQL and the tests.
 
 ### Manual tests on a real instance
