@@ -86,3 +86,5 @@ not tested it. It is not in the HACS default store.
 
 Open items are in section 7 of the design document. Issues are welcome in the
 [issue tracker](../../../issues).
+
+More about me and how I work: [nilssen.cc](https://nilssen.cc).
