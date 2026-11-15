@@ -1,3 +1,8 @@
+---
+owner: kennethnilssen
+last-verified: 2026-11-15
+---
+
 # Writing standard
 
 This standard tells you how to write and update documents in this repository.

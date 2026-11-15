@@ -1,3 +1,8 @@
+---
+owner: kennethnilssen
+last-verified: 2026-11-15
+---
+
 # Development guide
 
 This guide describes how to set up the repository for work and how a release is made.
@@ -50,6 +55,19 @@ CI also runs hassfest and the HACS validation. These have no local equivalent.
 
 A release is made for each change that users must see. This includes a documentation
 change that must show as the latest release.
+
+The diagram shows the order of the steps. The tag comes only after the CI checks pass.
+
+```mermaid
+flowchart TD
+    V([Set the version and the changelog]) --> C[Run the checks locally]
+    C --> P[Commit and push to main]
+    P --> G{CI checks green?}
+    G -->|No| F[Fix the error] --> C
+    G -->|Yes| T[Create and push the tag]
+    T --> R[Create the GitHub release]
+    R --> L([Check that the release is the latest])
+```
 
 1. Set `version` in `custom_components/concept2_logbook/manifest.json`.
 2. Add an entry under a new version heading in `CHANGELOG.md`, below `[Unreleased]`.
@@ -107,5 +125,16 @@ in HACS, not an error in the repository.
 - **HACS needs a tag to update.** Without a tag, HACS requests
   `archive/refs/heads/<commit>.zip`. GitHub returns 404 for this address, because it is for
   branch names.
-
-See `docs/RETROSPECTIVE.md` for the reasons behind these rules.
+- **Do not keep the state "this is the first run" in an attribute of the coordinator.**
+  Home Assistant creates the coordinator again at each reload and restart, and the
+  attribute resets. The event `concept2_new_result` did not fire after a reload for this
+  reason. Take the state from the stored data (`_last_synced_at is None`).
+- **Do not trust the documentation of an external API over its live answer.** Concept2
+  sends the challenge endpoints with the content type `text/html` and sends `{}` when
+  no challenge exists. The integration reads the body with `content_type=None` and
+  treats `{}` as no data. Check a new endpoint with `curl` first.
+- **Keep the message of the original exception.** When you wrap an error from the API client,
+  add the cause to the new message. A message without the cause hid the real error in the
+  first live test.
+- **Test the scheduled poll and the reload separately.** A reload forces a fast poll, and
+  this path can behave differently from the scheduled poll.
