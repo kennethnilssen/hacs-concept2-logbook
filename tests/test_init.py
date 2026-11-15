@@ -1,6 +1,6 @@
 """Integration tests for __init__.py: full setup/unload against a mocked API.
 
-Tests the actual setup path (T14: unload/reload with no orphaned listeners).
+Tests the actual setup path (unload and reload with no orphaned listeners).
 """
 
 from homeassistant.helpers import entity_registry as er
@@ -51,7 +51,7 @@ async def _setup_entry(
 
 
 async def test_setup_and_unload_entry_with_empty_history(hass, aioclient_mock):
-    """T05-adjacent: first sync with zero results (new/near-empty account)."""
+    """First sync with zero results (new/near-empty account)."""
     entry = await _setup_entry(hass, aioclient_mock, results=[])
 
     assert await hass.config_entries.async_setup(entry.entry_id)

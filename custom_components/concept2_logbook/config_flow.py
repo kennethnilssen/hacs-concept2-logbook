@@ -1,6 +1,6 @@
 """Config flow for Concept2 Logbook.
 
-Personal access token authentication (C3, D5 - 2026-07-11). Users generate
+Personal access token authentication. Users generate
 their own long-lived token at their Concept2 profile (Edit Profile ->
 Applications -> Concept2 Logbook API) and paste it in - no OAuth client
 registration, no redirect URI, no Application Credentials. One config entry
@@ -62,7 +62,7 @@ class Concept2ConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> Concept2OptionsFlow:
-        """Get the options flow for this handler (F6)."""
+        """Get the options flow for this handler."""
         return Concept2OptionsFlow()
 
     async def _async_validate_token(
@@ -108,10 +108,8 @@ class Concept2ConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_full_history_sync(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Ask whether to do a full paginated history sync (F3).
+        """Ask whether to do a full paginated history sync.
 
-        Unrelated to auth (D5) - kept unchanged from the OAuth2 design, per
-        the non-goal of not touching sync behavior beyond auth plumbing.
         Opting in fetches the user's entire Concept2 history (paginated) on
         first setup, for accurate lifetime totals immediately. Opting out
         only fetches the most recent results; lifetime/season totals then
@@ -137,7 +135,7 @@ class Concept2ConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]
     ) -> ConfigFlowResult:
-        """Handle reauth triggered by token expiry/revocation (F5)."""
+        """Handle reauth triggered by token expiry/revocation."""
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
@@ -163,7 +161,7 @@ class Concept2ConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class Concept2OptionsFlow(OptionsFlow):
-    """Options flow for Concept2 Logbook - polling interval only (F6)."""
+    """Options flow for Concept2 Logbook - polling interval only."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

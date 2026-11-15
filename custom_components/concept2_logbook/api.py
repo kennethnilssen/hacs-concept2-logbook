@@ -2,7 +2,7 @@
 
 Endpoints, parameters, and response shapes verified 2026-07-05 directly
 against https://log.concept2.com/developers/documentation/ (constraint C2).
-**Correction 2026-07-12:** live testing found the documentation doesn't
+Live testing found the documentation doesn't
 match reality on two points for the challenge endpoints - responses can
 be mislabeled `Content-Type: text/html` even for JSON bodies, and "no
 current/upcoming challenge" is a bare `{}`, not `{"data": []}`. Both are
@@ -12,7 +12,7 @@ This client only implements GET requests - deliberately provides no method
 capable of writing data, so there is no code path here that could
 accidentally mutate a user's Concept2 account, regardless of which base URL
 is configured. Authenticated requests use a personal access token supplied
-by the caller (D5); this client never validates or restricts that token's
+by the caller; this client never validates or restricts that token's
 scope, since Concept2's API does not expose a way to inspect it (SECURITY.md).
 """
 
@@ -49,7 +49,7 @@ class Concept2RateLimitedError(Concept2ApiError):
 
 
 class Concept2ServerError(Concept2ApiError):
-    """Raised on HTTP 5xx - the coordinator backs off on this too (design doc §4.3)."""
+    """Raised on HTTP 5xx - the coordinator backs off on this too."""
 
 
 def _parse_retry_after(value: str | None) -> float | None:
@@ -142,7 +142,7 @@ class Concept2ApiClient:
                 f"Network error calling Concept2 API for {path}: {err}"
             ) from err
 
-        # Treat all API responses as untrusted input (C4 / OWASP A03):
+        # Treat all API responses as untrusted input (OWASP A03):
         # validate the shape before handing it back to callers.
         if not isinstance(payload, dict):
             raise Concept2ApiError(f"Unexpected response shape from {path}")
@@ -169,7 +169,7 @@ class Concept2ApiClient:
         """Fetch one page of results. Requires `results:read`.
 
         Returns the full payload (`data` + `meta.pagination`) - walking
-        pagination across pages is the coordinator's job (build step 4), not
+        pagination across pages is the coordinator's job, not
         this client's.
         """
         params: dict[str, Any] = {}

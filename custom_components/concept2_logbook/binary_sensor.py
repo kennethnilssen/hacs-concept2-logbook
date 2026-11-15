@@ -1,4 +1,4 @@
-"""Binary sensor platform for Concept2 Logbook (F3 - "Workout done today")."""
+"""Binary sensor platform for Concept2 Logbook ("Workout done today")."""
 
 from __future__ import annotations
 

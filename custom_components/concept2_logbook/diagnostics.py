@@ -1,9 +1,9 @@
-"""Diagnostics support for Concept2 Logbook (T12).
+"""Diagnostics support for Concept2 Logbook.
 
 Redacts anything that could identify the user or grant access - tokens,
 the Concept2 account id/username, and free-text the user wrote themselves
 (workout comments) - using Home Assistant's own `async_redact_data` helper
-rather than ad hoc string matching (Gate 2 review, C4 / OWASP A09).
+rather than ad hoc string matching (OWASP A09).
 """
 
 from __future__ import annotations

@@ -1,9 +1,9 @@
 """DataUpdateCoordinator for Concept2 Logbook.
 
-Polls the Concept2 API (F2), maintains a local result store so aggregate
+Polls the Concept2 API, maintains a local result store so aggregate
 totals can be recomputed correctly when a historical result is edited or
-deleted upstream (design doc §4.1.1), and fires `concept2_new_result` for
-genuinely new results once the initial sync has completed (F4).
+deleted upstream (see the design document), and fires `concept2_new_result` for
+genuinely new results once the initial sync has completed.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 # Backoff schedule for HTTP 429/5xx - DataUpdateCoordinator does not provide
-# exponential backoff on its own (design doc §4.3), so this is implemented
+# exponential backoff on its own, so this is implemented
 # here: consecutive failures push _backoff_until further out, and
 # _async_update_data skips the actual API call (raising UpdateFailed
 # immediately) until that time passes.
@@ -69,7 +69,7 @@ def _parse_result_date(result: dict[str, Any]) -> date:
 
 
 def _is_valid_result(result: Any) -> bool:
-    """Treat all API responses as untrusted input (C4 / OWASP A03).
+    """Treat all API responses as untrusted input (OWASP A03).
 
     Checks "date" is a str explicitly (rather than catching TypeError from
     strptime) so this only ever needs a single exception type - a bare
@@ -138,7 +138,7 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
 
     @property
     def diagnostics_data(self) -> dict[str, Any]:
-        """Internal state useful for diagnostics/support (T12)."""
+        """Internal state useful for diagnostics/support."""
         return {
             "last_synced_at": self._last_synced_at,
             "last_full_sync_at": (
@@ -226,7 +226,7 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
         self._backoff_until = dt_util.utcnow() + timedelta(seconds=backoff_seconds)
 
     async def _async_fetch_pages(self, **filters: Any) -> list[dict[str, Any]]:
-        """Walk all pages for a filter set (T09 - every result processed once)."""
+        """Walk all pages for a filter set (every result is processed once)."""
         results: list[dict[str, Any]] = []
         page = 1
         while True:
@@ -242,7 +242,7 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
         return results
 
     def _due_for_reconciliation(self) -> bool:
-        """Whether it's time to re-check for upstream deletes (§4.1.1)."""
+        """Whether it's time to re-check for upstream deletes."""
         if not self._results:
             return False
         if self._last_full_sync_at is None:
@@ -365,7 +365,7 @@ class Concept2Coordinator(DataUpdateCoordinator[Concept2Data]):
     def _async_fire_new_result_event(
         self, result_id: str, totals: dict[str, Any]
     ) -> None:
-        """Fire concept2_new_result - never called during the initial sync (F4)."""
+        """Fire concept2_new_result - never called during the initial sync."""
         result = self._results[result_id]
         distance = result.get("distance", 0) or 0
         lifetime_before = totals["meters_lifetime"] - distance

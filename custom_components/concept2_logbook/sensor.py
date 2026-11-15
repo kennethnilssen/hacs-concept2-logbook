@@ -1,4 +1,4 @@
-"""Sensor platform for Concept2 Logbook (F3)."""
+"""Sensor platform for Concept2 Logbook."""
 
 from __future__ import annotations
 

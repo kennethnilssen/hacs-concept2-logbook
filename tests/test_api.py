@@ -1,7 +1,7 @@
 """Unit tests for the Concept2 API client.
 
 All requests are mocked (`aioclient_mock`) - no live calls to Concept2 ever
-run in automated tests, per the design doc's test plan and constraint C2.
+run in automated tests, per constraint C2.
 """
 
 import pytest
@@ -125,7 +125,7 @@ async def test_get_current_challenges_tolerates_mislabeled_content_type(
 async def test_get_user_empty_response_still_raises(hass, aioclient_mock):
     """Unlike the challenge endpoints, /api/users/me must always have `data` -
     `allow_empty` is opt-in per endpoint, not a global weakening of the
-    untrusted-input shape check (C4 / OWASP A03).
+    untrusted-input shape check (OWASP A03).
     """
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", json={})
     client = _client(hass)
@@ -159,7 +159,7 @@ async def test_server_error_raises_generic_api_error(hass, aioclient_mock):
 
 
 async def test_malformed_response_raises_api_error(hass, aioclient_mock):
-    """A response missing the expected "data" key must not be trusted (C4/A03)."""
+    """A response missing the expected "data" key must not be trusted (OWASP A03)."""
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", json={"unexpected": "shape"})
     client = _client(hass)
 
@@ -175,7 +175,7 @@ async def test_authenticated_call_without_token_raises(hass, aioclient_mock):
 
 
 async def test_token_never_appears_in_exception_messages(hass, aioclient_mock):
-    """T11: even on failure, the token must never leak into an error message."""
+    """even on failure, the token must never leak into an error message."""
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=401)
     client = _client(hass, token="super-secret-token-value")
 
