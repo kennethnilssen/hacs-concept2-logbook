@@ -80,6 +80,10 @@ It does not copy the live display of the PM5, because the data is not live.
 
 Expected result: the dashboard shows the sensors with real values.
 
+The picture shows the example dashboard in Home Assistant.
+
+<img src="docs/screenshots/dashboard-concept2-logbook-400w.png" width="400" alt="Home Assistant dashboard with the title Concept2 Logbook. An intro card, four tiles named Lifetime, This week, Streak and Done today, and cards named Last workout, Totals and Challenges, and two tiles named Last synced and Sync now.">
+
 ## What it does not do
 
 - **It does not show live data.** It reads results after they reach Concept2 Logbook.
