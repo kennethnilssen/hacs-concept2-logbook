@@ -42,17 +42,14 @@ of implementing it.
 
 ## Process rules
 
-1. **Stage-gate discipline.** The design doc defines Gates 0–5. Do not start work
-   belonging to a later gate while the current gate is open, unless the stakeholder
-   explicitly approves.
-2. **Explore → Plan → Implement → Commit.** For any non-trivial change, present a
+1. **Explore → Plan → Implement → Commit.** For any non-trivial change, present a
    plan first and wait for approval. The stakeholder reviews all diffs
    (Ask-permissions mode).
-3. **Tests travel with code.** Every functional change includes or updates pytest
+2. **Tests travel with code.** Every functional change includes or updates pytest
    coverage. CI (ruff + hassfest + HACS validation + pytest) must stay green.
-4. **Small commits, conventional-commit messages** (`feat:`, `fix:`, `test:`,
+3. **Small commits, conventional-commit messages** (`feat:`, `fix:`, `test:`,
    `docs:`, `ci:`) so the audit trail stays readable.
-5. **The stakeholder is learning Claude Code.** Explain what you're doing and why in
+4. **The stakeholder is learning Claude Code.** Explain what you're doing and why in
    plain language as you go. Prefer teaching over speed.
 
 ## Security rules (hard)
@@ -68,8 +65,8 @@ of implementing it.
 - Domain: `concept2_logbook`. Display name: "Concept2 Logbook". License: MIT.
 - Tagline (manifest/README): "This integration connects Concept2 Logbook to Home
   Assistant over API using the official Concept2 API protocol."
-- Repo visibility: public since 2026-07-05 (was private through Gate 3's
-  build steps; see design doc D4 for why it went public ahead of Gate 4).
+- Repo visibility: public since 2026-07-05 (see design doc D4 for why the
+  repository is public).
 - Async only; use HA's shared aiohttp session; DataUpdateCoordinator +
   CoordinatorEntity patterns; config entries only (no YAML setup).
 - Time values from the API are tenths of seconds — convert. Concept2 seasons run
