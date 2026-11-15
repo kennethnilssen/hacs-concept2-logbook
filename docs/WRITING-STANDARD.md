@@ -31,8 +31,6 @@ These limits come from `CLAUDE.md`. They have priority over this standard.
 5. Show a plan first. Wait for approval. Work on the branch `docs/writing-standard`.
    Make small commits with conventional-commit messages (`docs:`). Open a pull
    request. The owner reviews each diff and merges.
-6. Do not start work that belongs to a later gate in the design document.
-   Check the gate status before you start.
 
 ## 2. Language rules (from ASD-STE100)
 
