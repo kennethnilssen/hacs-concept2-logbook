@@ -1,134 +1,140 @@
+---
+owner: kennethnilssen
+last-verified: 2026-11-15
+---
+
 # Development guide
 
-How to get set up to work on this repo, and how a release actually happens.
-Written so a future session (human or Claude Code) can pick this project
-back up without re-deriving any of it.
+This guide describes how to set up the repository for work and how a release is made.
 
-## Prerequisites
+## Requirements
 
-- **Python 3.14+** - `pytest-homeassistant-custom-component==0.13.345`
-  (pinned in `requirements_test.txt`) requires it. An older Python silently
-  resolves to a broken/ancient version of that package instead of failing
-  loudly - always confirm `python3 --version` matches before debugging test
-  failures that don't make sense.
-- **`gh` CLI**, authenticated (`gh auth status`) - used for checking CI runs
-  and creating releases, not just GitHub's web UI.
-- **`git`**.
+- **Python 3.14 or newer.** `pytest-homeassistant-custom-component==0.13.345` (pinned in
+  `requirements_test.txt`) needs it. With an older Python, pip silently installs a broken
+  older version of the package. Run `python3 --version` before you debug a test that
+  makes no sense.
+- **`gh` CLI**, signed in. Check with `gh auth status`. You use it for CI status and releases.
+- **`git`.**
 
 ## First-time setup
 
+1. Create the virtual environment. The option `--upgrade-deps` is needed, because a
+   new environment can have no `pip` without it.
+
+   ```bash
+   python3 -m venv .venv --upgrade-deps
+   source .venv/bin/activate
+   pip install -r requirements_test.txt
+   ```
+
+   Expected result: `pytest --version` and `ruff --version` print a version.
+
+## Run the checks
+
+These commands are the same as in CI. All three must pass before you push.
+
 ```bash
-cd "concept2-logbook-ha"
-python3 -m venv .venv --upgrade-deps   # --upgrade-deps matters: a fresh venv
-                                         # on some Python installs has no pip
-                                         # otherwise
 source .venv/bin/activate
-pip install -r requirements_test.txt
-```
-
-## Running checks locally (mirrors CI exactly)
-
-```bash
-source .venv/bin/activate
-
-# Tests (CI: .github/workflows/test.yml)
 pytest tests --cov=custom_components.concept2_logbook
-
-# Lint + format (CI: .github/workflows/lint.yml)
 ruff check custom_components tests
 ruff format --check custom_components tests
 ```
 
-All four must pass before pushing. CI also runs `hassfest` (HA's own
-integration-quality check) and HACS validation - those have no local
-equivalent worth installing; CI is the check for those two.
+CI also runs hassfest and the HACS validation. These have no local equivalent.
 
-## Making a change
+## Change the code
 
-1. Read `CLAUDE.md` first - binding constraints (C1-C4) and process rules.
-   If a change would conflict with any of C1-C4, stop and flag it rather
-   than implementing around it.
-2. For anything non-trivial, present a plan and get explicit approval before
-   writing code (CLAUDE.md process rule #2).
-3. Write the code + tests together, not tests-after.
-4. Run the full local check suite above before committing.
-5. Commit with a conventional-commit message (`feat:`, `fix:`, `docs:`,
-   `test:`, `ci:`, `chore:`).
+1. Read `CLAUDE.md`. If a change breaks constraint C1 to C4, stop and report it.
+2. For a change that is not small, write a plan and wait for approval.
+3. Write the code and its tests together.
+4. Run the checks.
+5. Commit with a conventional-commit message (`feat:`, `fix:`, `docs:`, `test:`, `ci:`,
+   `chore:`).
 
-## Releasing
+## Make a release
 
-This project tags a release for almost every meaningful change - including
-doc-only changes when they need to be visible to HACS/GitHub's "latest
-release" resolution (see `docs/RETROSPECTIVE.md`). The shape is always the
-same:
+A release is made for each change that users must see. This includes a documentation
+change that must show as the latest release.
 
-```bash
-# 1. Bump the version in the manifest
-#    custom_components/concept2_logbook/manifest.json -> "version"
+The diagram shows the order of the steps. The tag comes only after the CI checks pass.
 
-# 2. Add a dated entry to CHANGELOG.md under a new version heading,
-#    above the previous one, below an empty [Unreleased]
-
-# 3. Verify locally (see above) - all green before committing
-
-# 4. Commit and push to main
-git add <files>
-git commit -m "..."
-git push
-
-# 5. Wait for all 5 CI checks green on that commit before tagging -
-#    never tag on a commit whose CI hasn't finished/passed
-gh run list --repo kennethnilssen/hacs-concept2-logbook --limit 6
-
-# 6. Tag (annotated, not lightweight) and push the tag
-git tag -a vX.Y.Z -F <path-to-a-tag-message-file>
-git push origin vX.Y.Z
-
-# 7. Publish the GitHub release (omit --prerelease unless it's genuinely
-#    a pre-release - HACS treats non-prerelease as the default update
-#    offered to everyone, no "Show beta versions" toggle needed)
-gh release create vX.Y.Z --repo kennethnilssen/hacs-concept2-logbook \
-  --title "..." --notes-file <path-to-release-notes-file>
-
-# 8. Confirm it's actually live as the latest release
-gh api repos/kennethnilssen/hacs-concept2-logbook/releases/latest --jq '.tag_name, .prerelease'
+```mermaid
+flowchart TD
+    V([Set the version and the changelog]) --> C[Run the checks locally]
+    C --> P[Commit and push to main]
+    P --> G{CI checks green?}
+    G -->|No| F[Fix the error] --> C
+    G -->|Yes| T[Create and push the tag]
+    T --> R[Create the GitHub release]
+    R --> L([Check that the release is the latest])
 ```
 
-**Why a file for the commit/tag message, not `-m "..."` inline:** long
-messages containing an apostrophe or contraction reliably break
-`git commit -m "$(cat <<'EOF' ... EOF)"` heredoc syntax in this shell setup.
-Write the message to a scratch file and use `git commit -F <file>` /
-`git tag -a vX.Y.Z -F <file>` instead - it just works, every time.
+1. Set `version` in `custom_components/concept2_logbook/manifest.json`.
+2. Add an entry under a new version heading in `CHANGELOG.md`, below `[Unreleased]`.
+3. Run the checks.
+4. Commit and push to `main`.
+5. Wait until the five CI checks are green. Do not tag a commit before this.
 
-## Checking CI status
+   ```bash
+   gh run list --repo kennethnilssen/hacs-concept2-logbook --limit 6
+   ```
 
-```bash
-gh run list --repo kennethnilssen/hacs-concept2-logbook --limit 6
-```
+   Expected result: `Test`, `Lint`, `Hassfest`, `HACS validation` and `CodeQL` show
+   `completed success` for the commit. `CodeQL` starts a little later than the others.
 
-Look for `Test`, `Lint`, `Hassfest`, `HACS validation`, and `CodeQL` (the
-last runs on a separate `dynamic` trigger, slightly offset from the push
-event) all showing `completed success` for the commit in question.
+6. Create an annotated tag and push it.
 
-## If HACS doesn't show a new release
+   ```bash
+   git tag -a vX.Y.Z -F <file with the tag message>
+   git push origin vX.Y.Z
+   ```
 
-This has happened even when the release itself is 100% correctly published
-(verified via `gh api .../releases/latest`). It's a HACS-side cache/refresh
-timing issue on the Home Assistant instance, not a repo problem. Fix order:
+7. Create the GitHub release. Add `--prerelease` only for a real pre-release.
 
-1. HACS -> the integration's page -> **⋮ -> Redownload** (forces HACS to
-   re-fetch this repo's data right now).
-2. Check HACS's own settings for a GitHub API rate-limit warning.
-3. Full Home Assistant restart, as a last resort.
+   ```bash
+   gh release create vX.Y.Z --repo kennethnilssen/hacs-concept2-logbook \
+     --title "..." --notes-file <file with the release notes>
+   ```
 
-## Common gotchas
+8. Check that the release is the latest.
 
-- **A fresh `venv` sometimes has no `pip`.** Fixed by `--upgrade-deps` on
-  `python3 -m venv` (see First-time setup above).
-- **`ruff format` can strip parentheses from a multi-exception
-  `except (A, B):` clause**, which then reads like a Python-2-era mistake.
-  Restructure to need only one exception type where practical rather than
-  fighting the formatter.
-- **HACS requires a tagged release to auto-update at all** once a repo has
-  more than one commit past its last tag - untagged/commit-based delivery
-  uses a GitHub archive URL pattern that reliably 404s.
+   ```bash
+   gh api repos/kennethnilssen/hacs-concept2-logbook/releases/latest --jq '.tag_name, .prerelease'
+   ```
+
+   Expected result: the new tag and `false`.
+
+**CAUTION:** Write the commit message and the tag message in a file and use
+`git commit -F <file>`. A message with an apostrophe breaks the heredoc form
+`git commit -m "$(cat <<'EOF' ... EOF)"` in this shell.
+
+## HACS does not show the new release
+
+HACS can show an old version after a correct release. The reason is old repository data
+in HACS, not an error in the repository.
+
+1. Select **HACS → the integration → ⋮ → Redownload**.
+2. Check the HACS settings for a GitHub API rate-limit warning.
+3. Restart Home Assistant.
+
+## Known problems
+
+- **A new virtual environment has no `pip`.** Use `--upgrade-deps` (see First-time setup).
+- **`ruff format` removes the parentheses in `except (A, B):`.** The text then looks like
+  an old Python 2 error. Use only one exception type in the clause where possible.
+- **HACS needs a tag to update.** Without a tag, HACS requests
+  `archive/refs/heads/<commit>.zip`. GitHub returns 404 for this address, because it is for
+  branch names.
+- **Do not keep the state "this is the first run" in an attribute of the coordinator.**
+  Home Assistant creates the coordinator again at each reload and restart, and the
+  attribute resets. The event `concept2_new_result` did not fire after a reload for this
+  reason. Take the state from the stored data (`_last_synced_at is None`).
+- **Do not trust the documentation of an external API over its live answer.** Concept2
+  sends the challenge endpoints with the content type `text/html` and sends `{}` when
+  no challenge exists. The integration reads the body with `content_type=None` and
+  treats `{}` as no data. Check a new endpoint with `curl` first.
+- **Keep the message of the original exception.** When you wrap an error from the API client,
+  add the cause to the new message. A message without the cause hid the real error in the
+  first live test.
+- **Test the scheduled poll and the reload separately.** A reload forces a fast poll, and
+  this path can behave differently from the scheduled poll.
