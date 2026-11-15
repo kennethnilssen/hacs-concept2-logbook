@@ -106,8 +106,13 @@ The integration is not in the HACS default store. Add it as a custom repository.
    category **Integration**.
 4. Find **Concept2 Logbook** in HACS and select **Download**.
 5. Restart Home Assistant.
-6. Go to **Settings → Devices & Services → Add Integration** and select
-   **Concept2 Logbook**.
+6. Select the button below, or go to **Settings → Devices & Services → Add Integration**
+   and select **Concept2 Logbook**.
+
+   [![Open your Home Assistant instance and start setting up the integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=concept2_logbook)
+
+   The button works only after step 5, because the integration must be installed first.
+   It works with the manual installation too and does not need HACS.
 7. Paste your personal access token and continue.
 8. Choose whether to sync the full history of your results now.
    If you choose yes, the first setup is slower and the lifetime totals are correct at
