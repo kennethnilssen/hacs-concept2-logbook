@@ -4,191 +4,166 @@
 
 # Concept2 Logbook — Home Assistant Integration
 
+Connects your [Concept2 Logbook](https://log.concept2.com) account to [Home Assistant](https://www.home-assistant.io)
+over the official Concept2 API, and exposes your workout results as sensors and an
+automation event. Read-only — it never writes anything back to your Concept2 account.
+
+To install it, add this repository to HACS as a custom repository and paste a
+personal access token from your Concept2 profile. See [Installation](#installation).
+
 [![Test](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/test.yml/badge.svg)](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/test.yml)
 [![Lint](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/lint.yml/badge.svg)](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/lint.yml)
 [![Hassfest](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/hassfest.yml/badge.svg)](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/hassfest.yml)
 [![HACS validation](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/hacs.yml/badge.svg)](https://github.com/kennethnilssen/hacs-concept2-logbook/actions/workflows/hacs.yml)
 
-Connects your [Concept2 Logbook](https://log.concept2.com) account to [Home Assistant](https://www.home-assistant.io)
-over the official Concept2 API, and exposes your workout results as sensors and an
-automation event. Read-only — it never writes anything back to your Concept2 account.
-
 > [!NOTE]
-> **AI-written. Read this before installing.**
-> This integration was built end-to-end by [Claude Code](https://claude.com/claude-code)
-> (an AI coding agent) under human supervision — every line was reviewed. It's
-> unit-tested (100% line coverage, CI green — see badges above), and every
-> manual acceptance test in the design doc (§6.3) has been confirmed against
-> a real Home Assistant instance and a real Concept2 account: the personal
-> access token config flow, a full history sync, real sensor/challenge data,
-> `concept2_new_result` firing correctly on a genuinely new result with the
-> correct payload, the [starter dashboard](docs/example-dashboard.yaml)
-> rendering cleanly, and reauthentication recovering correctly after a live
-> token revocation.
->
-> That's thorough testing on **one** real account and instance, not broad
-> community testing — this isn't in the HACS default store yet, so still
-> expect the occasional rough edge outside what's been directly exercised
-> here. [Open an issue](../../issues) if something breaks.
+> **AI-written.** [Claude Code](https://claude.com/claude-code) wrote this
+> integration, and a person reviewed every change.
+> The tests cover 100% of the lines, and CI is green.
+> The author tested the main functions on one real Home Assistant instance and
+> one real Concept2 account.
+> No other people have tested it yet, and it is not in the HACS default store.
+> [Open an issue](../../issues) if something stops working. The test details are in
+> [concept2-ha-integration-design.md](concept2-ha-integration-design.md).
 
-## What this is
+## What it does
 
-- **Polls** the Concept2 API every 15 minutes by default (configurable, 10 minutes
-  minimum - see [Options](#options)) for your logged results (RowErg, SkiErg,
-  BikeErg — anything Concept2 tracks), and exposes them as Home Assistant sensors:
-  last workout details, computed totals (today/week/month/season/lifetime), a
-  workout streak, and current/upcoming Concept2 challenges. This is a regular
-  `GET` request on a timer, not a push/webhook from Concept2 - so after a result,
-  expect up to ~15 minutes before it shows up (or trigger it immediately yourself:
-  **Settings → Devices & Services → Concept2 Logbook → ⋮ → Reload**).
-- Fires a `concept2_new_result` event when a genuinely new result appears, so you can
-  trigger automations (e.g. a TTS announcement, a light scene) on a new row.
-- Optional one-time full history sync on setup, for accurate lifetime totals from day
-  one instead of growing from install date.
+- **Polls** the Concept2 API every 15 minutes and creates sensors for your results.
+  You can change the interval to 10 minutes or more. See [Options](#options).
+- **Fires** the event `concept2_new_result` for each new result. Use it as a trigger
+  in an automation, for example for a notification or a light scene.
+- **Syncs** the history of all your results once during setup, if you choose this.
+  The lifetime totals are then correct from the first day.
+
+The integration sends a `GET` request on a timer. Concept2 does not push data.
+A new result therefore appears after at most 15 minutes. To get it at once, press
+the **Sync now** button.
 
 ## Sensors
 
 **Last workout:** distance, time, average pace, average heart rate, stroke rate,
 calories, drag factor, date.
 
-**Totals:** meters today / this week / this month / this season / lifetime, workouts
-this week / this month, calories this month, workout streak.
+**Totals:** meters today, this week, this month, this season and lifetime.
+Workouts this week and this month. Calories this month. Workout streak.
 
-**Status:** a "workout done today" binary sensor.
+**Status:** the binary sensor "Workout done today".
 
-**Challenges:** current challenge, upcoming challenge (public Concept2 data, no
-token needed). Current challenge correctly shows "unknown" rather than an error when
-Concept2 has no active challenge running right now.
+**Challenges:** the current challenge and the upcoming challenge. These use public
+Concept2 data and need no token. If Concept2 has no active challenge, "Current
+challenge" shows "unknown". This is correct and is not an error.
 
-**Diagnostic:** a "Last synced" timestamp sensor, and a "Sync now" button that
-requests an immediate sync without reloading the whole integration.
-
-Full technical detail in the design doc (`concept2-ha-integration-design.md`) §3.1 F3.
+**Diagnostic:** the sensor "Last synced" and the button "Sync now".
+The button requests one sync and does not reload the integration.
 
 ## Options
 
-**Settings → Devices & Services → Concept2 Logbook → Configure** lets you change the
-polling interval (minimum 10 minutes, to stay a good citizen of Concept2's API).
+To change the polling interval, go to **Settings → Devices & Services → Concept2
+Logbook → Configure**. The minimum is 10 minutes. The limit protects the Concept2 API.
 
-## Screenshots
+## Screenshot
 
 <img src="docs/screenshots/sensors.png" width="360" alt="Concept2 Logbook sensor list in Home Assistant, showing real data: lifetime/season/month/week meters, workout streak, last-workout detail, and challenges">
 
-The integration's entity list on a real Home Assistant instance and real Concept2
-account, unedited (UI language is Norwegian - the stakeholder's own instance). Real
-numbers pulled from an actual history sync: `1 008 m` last workout, `3 518 m`
-lifetime/season/month/week so far, a 2-day workout streak, 3 workouts this week. Note
-"Current challenge" correctly shows `Ukjent` ("Unknown") rather than an error - that's
-the expected state when Concept2 has no active challenge running right now, not a
-bug.
+The picture shows the sensors on a real instance, and the interface language is
+Norwegian. The values come from a real Concept2 account.
 
 ## Dashboard
 
-[`docs/example-dashboard.yaml`](docs/example-dashboard.yaml) is a starter Lovelace
-dashboard built entirely from stock Home Assistant card types (no extra HACS
-frontend cards required) - totals, last workout, challenges, and the sync
-controls. Deliberately doesn't mimic the PM5's live monitor layout, since this
-integration polls every 15 minutes rather than streaming live data; the card
-says so at the top rather than implying it's a live feed. Paste it via any
-dashboard's **⋮ → Edit Dashboard → ⋮ → Raw configuration editor**.
+[`docs/example-dashboard.yaml`](docs/example-dashboard.yaml) is an example dashboard.
+It shows totals, the last workout, challenges and the sync controls.
+It uses only standard Home Assistant cards.
+It does not copy the live display of the PM5, because the data is not live.
 
-Confirmed 2026-07-12: renders cleanly with real data on a live instance,
-including the "Last workout" card's template math (distance/time/pace
-formatting, date).
+1. In a dashboard, select **⋮ → Edit Dashboard → ⋮ → Raw configuration editor**.
+2. Paste the file as a new view and select **Save**.
 
-## What this is *not*
+Expected result: the dashboard shows the sensors with real values.
 
-- **Not live telemetry.** It reads results after they sync to the Concept2 Logbook —
-  it does not talk to your PM5 over Bluetooth while you're rowing. If you want
-  live stroke-by-stroke data on the wall while rowing, this isn't that; look at the
-  existing PM5 Bluetooth integrations instead.
-- **Not able to write anything.** No scopes, no code path, can create/edit/delete
-  nothing in your Concept2 account.
+## What it does not do
+
+- **It does not show live data.** It reads results after they reach Concept2 Logbook.
+  It does not connect to the PM5 over Bluetooth. For live data, use a PM5 integration
+  for Bluetooth.
+- **It does not write to your account.** The integration contains no code that
+  creates, changes or deletes data at Concept2.
 
 ## Requirements
 
 - A Concept2 Logbook account.
-- Your **own** personal access token, generated in a few clicks at
-  **log.concept2.com → Profile → Edit Profile → Applications → Concept2 Logbook API**.
-  No app registration, no client ID/secret, no redirect URI to configure — it's a
-  single token string. It stays valid until you revoke it on that same page. (This
-  integration is strictly read-only; per Concept2's own docs, personal-use apps that
-  only read data are meant to use this token rather than register a full OAuth
-  client, which is the path for apps distributed to multiple users.)
-- [HACS](https://hacs.xyz) installed (recommended), or willingness to copy files in
-  manually.
+- A personal access token. Create it at **log.concept2.com → Profile → Edit Profile
+  → Applications → Concept2 Logbook API**. The token stays valid until you revoke it
+  on the same page. You do not register an app and you do not need a client secret.
+- [HACS](https://hacs.xyz), or the manual installation below.
 
 ## Installation
 
-### Not in the HACS default store yet
+The integration is not in the HACS default store. Add it as a custom repository.
 
-This repository isn't submitted to the HACS default store, so it won't show up in a
-plain HACS search — you add it as a **custom repository** (steps below). See
-[Known v1 limitations](#known-v1-limitations).
-
-### Via HACS (recommended)
-
-1. In Home Assistant, go to **HACS**.
-2. Click the **⋮** (three dots) in the top right → **Custom repositories**.
-3. Add this repository's URL, category **Integration**:
-   `https://github.com/kennethnilssen/hacs-concept2-logbook`
-4. Find **Concept2 Logbook** in HACS and click **Download**.
+1. In Home Assistant, open **HACS**.
+2. Select **⋮ → Custom repositories**.
+3. Enter `https://github.com/kennethnilssen/hacs-concept2-logbook` and select the
+   category **Integration**.
+4. Find **Concept2 Logbook** in HACS and select **Download**.
 5. Restart Home Assistant.
-6. Go to **Settings → Devices & Services → Add Integration**, search for
+6. Go to **Settings → Devices & Services → Add Integration** and select
    **Concept2 Logbook**.
-7. Generate a personal access token at
-   **log.concept2.com → Profile → Edit Profile → Applications → Concept2 Logbook API**
-   (see [Requirements](#requirements) above), then paste it into the setup form.
-8. You'll be asked whether to sync the full history of your results now (accurate lifetime
-   totals immediately, but slower on first setup) or start fresh from today (totals
-   grow over time instead).
+7. Paste your personal access token and continue.
+8. Choose whether to sync the full history of your results now.
+   If you choose yes, the first setup is slower and the lifetime totals are correct at
+   once. If you choose no, the totals start from today.
 
-### Revoking access
+Expected result: the device **Concept2 Logbook** appears with its sensors.
 
-Go back to **log.concept2.com → Profile → Edit Profile → Applications** and revoke
-the token there at any time. Home Assistant will detect this on its next poll and
-prompt you to reauthenticate (paste a new token) instead of stopping silently.
+### Manual installation
 
-### Manual (without HACS)
-
-1. Copy `custom_components/concept2_logbook` from this repo into your Home
-   Assistant config's `custom_components/` folder.
+1. Copy `custom_components/concept2_logbook` to the `custom_components/` folder in
+   your Home Assistant configuration.
 2. Restart Home Assistant.
 3. Continue from step 6 above.
 
-## Known v1 limitations
+### Revoke access
 
-- Deleting a result on Concept2's side isn't detected instantly — it's caught on a
-  periodic reconciliation (up to ~24h later), since Concept2's polling API has no
-  "deleted items" feed (only its webhook does, which is out of scope for v1).
-- Result dates are assumed to be in Home Assistant's local timezone (Concept2's API
-  doesn't reliably return one).
-- Not yet submitted to the HACS default store — install as a custom repository (above).
-- The integration icon (`custom_components/concept2_logbook/brand/icon.png`) is a
-  plain placeholder, not a designed logo — nobody's done branding work on this yet.
+1. Revoke the token at **log.concept2.com → Profile → Edit Profile → Applications**.
+2. Wait for the next poll, or press **Sync now**.
+
+Expected result: Home Assistant asks you for a new token. Paste a new token to
+continue.
+
+## Troubleshooting
+
+| Problem | Cause | Action |
+| --- | --- | --- |
+| HACS does not show a new version | HACS keeps old data for the repository | Select **HACS → Concept2 Logbook → ⋮ → Redownload**. |
+| Home Assistant asks for a new token | The token is revoked or invalid | Create a new token and paste it. |
+| "Current challenge" is "unknown" | Concept2 has no active challenge | None. |
+| A new result does not appear | The next poll is not yet done | Press **Sync now**. |
+
+## Known limits
+
+- A result that you delete at Concept2 stays in Home Assistant for up to 24 hours.
+  Concept2 does not send a list of deleted results.
+- The integration treats the date of a result as the local time zone of Home Assistant.
+  The Concept2 API does not give a reliable time zone.
+- The icon is a placeholder.
 
 ## Security
 
-- Personal access token authentication (D5) — you generate your own token at your
-  Concept2 profile and can revoke it at any time from that same page.
-- Read-only: no write scopes requested, no code path capable of writing to Concept2.
-  Talks to the production Concept2 API directly — per Concept2's own docs, read-only
-  personal-use apps aren't required to develop against a separate dev server.
-- No credentials are ever stored in this repository or logged.
-- **One honest limitation:** unlike a full OAuth2 client registration, this
-  integration cannot see or restrict what scope your personal token actually carries
-  — that's set by Concept2's own page when you generate it, not by this integration's
-  code. See [SECURITY.md](SECURITY.md) for the full threat model and OWASP alignment.
+- The integration uses a personal access token that you create and can revoke.
+- The integration sends only `GET` requests and requests no write scope.
+- The integration does not store or log the token outside the Home Assistant config entry.
+- **Limit:** the integration cannot read or restrict the scope of your token.
+  Concept2 sets the scope when you create the token.
+
+See [SECURITY.md](SECURITY.md) for the threat model and the OWASP mapping.
 
 ## Attribution
 
 Built with [Claude Code](https://claude.com/claude-code), human-reviewed,
-security-focused — see [CLAUDE.md](CLAUDE.md) for the working agreement this project
-was built under, and [concept2-ha-integration-design.md](concept2-ha-integration-design.md)
-for the full design, scope, and test plan. See [CHANGELOG.md](CHANGELOG.md) for
-what's actually been built so far, [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for
-local setup and the release process, and [docs/RETROSPECTIVE.md](docs/RETROSPECTIVE.md)
-for what was learned building it.
+security-focused. See [CLAUDE.md](CLAUDE.md) for the working agreement and
+[concept2-ha-integration-design.md](concept2-ha-integration-design.md) for the design.
+See [CHANGELOG.md](CHANGELOG.md) for the changes and
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the setup and the release process.
 
 ## License
 
