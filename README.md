@@ -19,7 +19,7 @@ personal access token from your Concept2 profile. See [Installation](#installati
 > [!NOTE]
 > **AI-written.** [Claude Code](https://claude.com/claude-code) wrote this
 > integration, and a person reviewed every change.
-> The tests cover 100% of the lines, and CI is green.
+> The tests cover 99% of the lines, and CI is green.
 > The author tested the main functions on one real Home Assistant instance and
 > one real Concept2 account.
 > No other people have tested it yet, and it is not in the HACS default store.
