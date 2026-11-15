@@ -161,6 +161,18 @@ continue.
 
 See [SECURITY.md](SECURITY.md) for the threat model and the OWASP mapping.
 
+## Why this exists
+
+I row at home on a Concept2 rowing machine, and I run my home on Home Assistant.
+My training results lived in one place and my home lived in another.
+
+This integration connects the two. In my home, a button in the training room starts a
+scene and speaks the distance of my previous result.
+
+I built it as a personal, read-only project, and I share it as it is. Claude Code wrote
+the code. I set the rules, reviewed every change and tested it on my own account.
+The full story is in [docs/STORY.md](docs/STORY.md).
+
 ## Attribution
 
 Built with [Claude Code](https://claude.com/claude-code), human-reviewed,
@@ -168,6 +180,7 @@ security-focused. See [CLAUDE.md](CLAUDE.md) for the working agreement and
 [concept2-ha-integration-design.md](concept2-ha-integration-design.md) for the design.
 See [CHANGELOG.md](CHANGELOG.md) for the changes and
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the setup and the release process.
+Read [docs/STORY.md](docs/STORY.md) for the story of the project.
 
 ## Not affiliated
 
