@@ -56,17 +56,14 @@ challenge" shows "unknown". This is correct and is not an error.
 **Diagnostic:** the sensor "Last synced" and the button "Sync now".
 The button requests one sync and does not reload the integration.
 
+The picture shows the device page of the integration in Home Assistant, with the sensors and the diagnostic entities.
+
+<img src="docs/screenshots/device-page-concept2-logbook-400w.png" width="400" alt="Home Assistant device page for Concept2 Logbook. A box with the title Service info, a Sensors list with values such as Meters lifetime 95 944 m and Last workout distance 2 000 m, a Diagnostic box with Last synced and Sync now, and a Related box.">
+
 ## Options
 
 To change the polling interval, go to **Settings → Devices & Services → Concept2
 Logbook → Configure**. The minimum is 10 minutes. The limit protects the Concept2 API.
-
-## Screenshot
-
-<img src="docs/screenshots/sensors.png" width="360" alt="Concept2 Logbook sensor list in Home Assistant, showing real data: lifetime/season/month/week meters, workout streak, last-workout detail, and challenges">
-
-The picture shows the sensors on a real instance, and the interface language is
-Norwegian. The values come from a real Concept2 account.
 
 ## Dashboard
 
@@ -79,6 +76,10 @@ It does not copy the live display of the PM5, because the data is not live.
 2. Paste the file as a new view and select **Save**.
 
 Expected result: the dashboard shows the sensors with real values.
+
+The picture shows the example dashboard in Home Assistant.
+
+<img src="docs/screenshots/dashboard-concept2-logbook-400w.png" width="400" alt="Home Assistant dashboard with the title Concept2 Logbook. An intro card, four tiles named Lifetime, This week, Streak and Done today, and cards named Last workout, Totals and Challenges, and two tiles named Last synced and Sync now.">
 
 ## What it does not do
 
