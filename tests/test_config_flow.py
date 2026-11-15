@@ -1,4 +1,4 @@
-"""Tests for the Concept2 Logbook personal-access-token config flow (D5)."""
+"""Tests for the Concept2 Logbook personal-access-token config flow."""
 
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType
@@ -14,7 +14,7 @@ async def _start_flow(hass):
 
 
 async def test_valid_token_creates_entry(hass, aioclient_mock):
-    """T01: a valid token creates the entry, unique_id = Concept2 user id."""
+    """a valid token creates the entry, unique_id = Concept2 user id."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me",
         json={"data": {"id": 1, "username": "test-user"}},
@@ -43,7 +43,7 @@ async def test_valid_token_creates_entry(hass, aioclient_mock):
 
 
 async def test_invalid_token_shows_form_error(hass, aioclient_mock):
-    """T02: a 401 during validation shows invalid_auth, stores nothing."""
+    """a 401 during validation shows invalid_auth, stores nothing."""
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=401)
 
     result = await _start_flow(hass)
@@ -58,7 +58,7 @@ async def test_invalid_token_shows_form_error(hass, aioclient_mock):
 
 
 async def test_same_account_twice_aborts_already_configured(hass, aioclient_mock):
-    """T02b: adding the same Concept2 account a second time is rejected."""
+    """adding the same Concept2 account a second time is rejected."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me",
         json={"data": {"id": 1, "username": "test-user"}},
@@ -78,7 +78,7 @@ async def test_same_account_twice_aborts_already_configured(hass, aioclient_mock
 
 
 async def test_network_error_shows_cannot_connect(hass, aioclient_mock):
-    """T03: a network/server error during validation shows cannot_connect."""
+    """a network/server error during validation shows cannot_connect."""
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=500)
 
     result = await _start_flow(hass)
@@ -94,7 +94,7 @@ async def test_network_error_shows_cannot_connect(hass, aioclient_mock):
 async def test_reauth_with_valid_token_for_same_account_updates_entry(
     hass, aioclient_mock
 ):
-    """T04: reauth with a fresh token for the same account updates and reloads."""
+    """reauth with a fresh token for the same account updates and reloads."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me",
         json={"data": {"id": 1, "username": "test-user"}},

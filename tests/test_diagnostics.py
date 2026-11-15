@@ -1,4 +1,4 @@
-"""Tests for diagnostics redaction (T12, C4/OWASP A09)."""
+"""Tests for diagnostics redaction (OWASP A09)."""
 
 from custom_components.concept2_logbook.diagnostics import (
     async_get_config_entry_diagnostics,

@@ -1,4 +1,4 @@
-"""Tests for the polling-interval options flow (F6, T13)."""
+"""Tests for the polling-interval options flow."""
 
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -42,7 +42,7 @@ async def test_options_flow_accepts_valid_interval(hass):
 
 
 async def test_options_flow_rejects_interval_below_minimum(hass):
-    """T13: polling interval below the allowed minimum is rejected."""
+    """polling interval below the allowed minimum is rejected."""
     entry = _entry(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
 

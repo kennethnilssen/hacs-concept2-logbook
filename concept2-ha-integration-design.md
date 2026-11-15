@@ -191,11 +191,9 @@ integration. The fix is in `1.0.0` (see the [changelog](CHANGELOG.md)).
 
 These items are not decided.
 
-1. **The icon.** The icon in `brand/` is a placeholder. A final icon is in `assets/logo/`.
-   The decision is to use it, and the wiring is not done.
-2. **The tagline in the README.** The README opening sentence and the tagline above are not
+1. **The tagline in the README.** The README opening sentence and the tagline above are not
    the same sentence. Decide if the tagline goes into the README.
-3. **The HACS default store.** The integration is a custom repository. The submission to
+2. **The HACS default store.** The integration is a custom repository. The submission to
    the default store waits. HACS needs a full release, a passing HACS action and a brand
    icon, and the review can take months.
 
@@ -203,6 +201,7 @@ These items are not decided.
 
 | Date | Change |
 | --- | --- |
+| 2026-11-15 | The icon in `brand/` is the final icon. The sources are in `assets/logo/`. |
 | 2026-11-15 | Rewritten after `docs/WRITING-STANDARD.md`. The gate model and the old test lists are removed. The decisions D1 to D11 have reasons and rejected options. The text is compared with the code. |
 | 2026-07-12 | The tests A04 and A06 passed. The decision D6 is closed. The GitHub description is shortened. |
 | 2026-07-11 | The decision D5: a personal access token replaces OAuth2. |

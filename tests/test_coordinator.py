@@ -1,4 +1,4 @@
-"""Tests for Concept2Coordinator (T05-T10, T15)."""
+"""Tests for Concept2Coordinator."""
 
 from datetime import timedelta
 
@@ -70,7 +70,7 @@ async def test_coordinator_uses_configured_interval_from_options(hass):
 
 
 async def test_first_sync_populates_data_without_firing_event(hass, aioclient_mock):
-    """T05: first sync with N results populates data, fires no event."""
+    """first sync with N results populates data, fires no event."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results",
         json={
@@ -96,7 +96,7 @@ async def test_first_sync_populates_data_without_firing_event(hass, aioclient_mo
 
 
 async def test_incremental_sync_fires_event_for_new_result_only(hass, aioclient_mock):
-    """T06: a second poll that finds exactly one new result fires exactly one event."""
+    """a second poll that finds exactly one new result fires exactly one event."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results",
         json={
@@ -186,7 +186,7 @@ async def test_reload_does_not_suppress_event_for_new_result(hass, aioclient_moc
 
 
 async def test_result_update_reflected_without_firing_event(hass, aioclient_mock):
-    """T10: an edited result updates totals on next poll, without firing an event."""
+    """an edited result updates totals on next poll, without firing an event."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results",
         json={
@@ -221,7 +221,7 @@ async def test_result_update_reflected_without_firing_event(hass, aioclient_mock
 
 
 async def test_pagination_processes_every_result_exactly_once(hass, aioclient_mock):
-    """T09: a full sync across multiple pages processes each result once."""
+    """a full sync across multiple pages processes each result once."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results?page=1",
         json={
@@ -247,7 +247,7 @@ async def test_pagination_processes_every_result_exactly_once(hass, aioclient_mo
 
 
 async def test_rate_limit_backs_off_and_recovers(hass, aioclient_mock):
-    """T07: a 429 triggers backoff; a later successful poll recovers."""
+    """a 429 triggers backoff; a later successful poll recovers."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results",
         json={"data": [], "meta": {"pagination": {"total_pages": 1}}},
@@ -301,7 +301,7 @@ async def test_auth_error_triggers_reauth(hass, aioclient_mock):
 
 
 async def test_malformed_result_is_skipped_not_fatal(hass, aioclient_mock):
-    """T08: a malformed result is logged and skipped, not a crash."""
+    """a malformed result is logged and skipped, not a crash."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results",
         json={
@@ -323,7 +323,7 @@ async def test_malformed_result_is_skipped_not_fatal(hass, aioclient_mock):
 
 
 async def test_deleted_result_removed_on_reconciliation(hass, aioclient_mock):
-    """T15: a result deleted upstream is removed from totals on reconciliation."""
+    """a result deleted upstream is removed from totals on reconciliation."""
     aioclient_mock.get(
         f"{API_BASE_URL}/api/users/me/results",
         json={
@@ -360,7 +360,7 @@ async def test_deleted_result_removed_on_reconciliation(hass, aioclient_mock):
 
 
 async def test_store_round_trip_survives_a_restart(hass, aioclient_mock):
-    """§4.1.1's whole point: state must actually survive a coordinator reload.
+    """State must actually survive a coordinator reload.
 
     Every other test builds one coordinator and keeps calling it - none of
     them prove the Store save/load round-trip itself works. This is the one

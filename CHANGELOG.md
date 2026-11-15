@@ -7,6 +7,13 @@ All notable changes to this project are in this file. The format follows
 
 Nothing yet.
 
+## [1.0.3] - 2026-11-15
+
+### Changed
+
+- New icon for the integration, in the HACS and Home Assistant lists.
+- Remove three unused constants and stale comments. The behavior is unchanged.
+
 ## [1.0.2] - 2026-07-12
 
 ### Changed

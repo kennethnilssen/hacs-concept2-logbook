@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="custom_components/concept2_logbook/brand/icon.png" width="96" height="96" alt="Concept2 Logbook icon (plain placeholder, not a designed logo)">
+  <img src="custom_components/concept2_logbook/brand/icon.png" width="96" height="96" alt="Concept2 Logbook icon">
 </p>
 
 # Concept2 Logbook — Home Assistant Integration
@@ -106,8 +106,13 @@ The integration is not in the HACS default store. Add it as a custom repository.
    category **Integration**.
 4. Find **Concept2 Logbook** in HACS and select **Download**.
 5. Restart Home Assistant.
-6. Go to **Settings → Devices & Services → Add Integration** and select
-   **Concept2 Logbook**.
+6. Select the button below, or go to **Settings → Devices & Services → Add Integration**
+   and select **Concept2 Logbook**.
+
+   [![Open your Home Assistant instance and start setting up the integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=concept2_logbook)
+
+   The button works only after step 5, because the integration must be installed first.
+   It works with the manual installation too and does not need HACS.
 7. Paste your personal access token and continue.
 8. Choose whether to sync the full history of your results now.
    If you choose yes, the first setup is slower and the lifetime totals are correct at
@@ -145,7 +150,6 @@ continue.
   Concept2 does not send a list of deleted results.
 - The integration treats the date of a result as the local time zone of Home Assistant.
   The Concept2 API does not give a reliable time zone.
-- The icon is a placeholder.
 
 ## Security
 
@@ -164,6 +168,11 @@ security-focused. See [CLAUDE.md](CLAUDE.md) for the working agreement and
 [concept2-ha-integration-design.md](concept2-ha-integration-design.md) for the design.
 See [CHANGELOG.md](CHANGELOG.md) for the changes and
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the setup and the release process.
+
+## Not affiliated
+
+This project is not affiliated with or endorsed by Concept2 or by Nabu Casa (Home Assistant).
+The icon is a generic drawing and does not copy a logo of either.
 
 ## License
 
