@@ -134,6 +134,15 @@ async def test_get_user_empty_response_still_raises(hass, aioclient_mock):
         await client.async_get_user()
 
 
+async def test_get_user_non_object_response_raises(hass, aioclient_mock):
+    """A response that is not a JSON object must not be trusted (OWASP A03)."""
+    aioclient_mock.get(f"{API_BASE_URL}/api/users/me", json=[])
+    client = _client(hass)
+
+    with pytest.raises(Concept2ApiError):
+        await client.async_get_user()
+
+
 async def test_401_raises_auth_error(hass, aioclient_mock):
     aioclient_mock.get(f"{API_BASE_URL}/api/users/me", status=401)
     client = _client(hass)
