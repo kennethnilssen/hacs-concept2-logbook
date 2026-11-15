@@ -55,7 +55,7 @@ now that live testing has covered everything that matters most (see below).
 - Personal access token config flow, full history sync, real sensor and
   challenge data (`v0.2.0`–`v0.2.3-alpha`).
 - The `concept2_new_result` event firing correctly on a genuinely new
-  workout, with the correct `milestone_crossed`/`longest_row_this_season`
+  result, with the correct `milestone_crossed`/`longest_row_this_season`
   payload data - confirmed 2026-07-12, after fixing a real bug
   (`v0.2.4-alpha`) where it could silently never fire after a reload.
 - Diagnostics export redaction, verified against real exported files.
@@ -125,7 +125,7 @@ No functional/code changes from 0.2.2-alpha - documentation only.
   a real account (see the warning at the top of README), so HACS now offers
   this as a normal update without needing "Show beta versions" enabled.
   Still explicitly labeled `alpha` and still not a "testing is done" claim:
-  `concept2_new_result` firing on a genuinely new workout, and totals holding
+  `concept2_new_result` firing on a genuinely new result, and totals holding
   up over a longer stretch of time, are unconfirmed - that's Gate 4, not this
   release.
 
@@ -205,7 +205,7 @@ progress, not complete; see the warning in README.md.
 
 - Deletion detection lags up to ~24h behind (bounded periodic reconciliation, not
   real-time) — Concept2's polling API has no "deleted items" feed.
-- Workout dates are assumed to be in Home Assistant's local timezone.
+- Result dates are assumed to be in Home Assistant's local timezone.
 - Not submitted to the HACS default store yet (custom-repository install only).
 - A personal access token's scope is set by Concept2's own page at generation
   time and cannot be inspected or restricted by this integration's code - a
@@ -215,7 +215,7 @@ progress, not complete; see the warning in README.md.
 ### Not yet done
 
 - Full manual acceptance testing on a real Home Assistant instance / real
-  Concept2 account, including a real workout triggering `concept2_new_result`
+  Concept2 account, including a real result triggering `concept2_new_result`
   (Gate 4) - config-flow authorization has been confirmed working, but totals
   accumulating over time and the event firing have not.
 - Screenshots.

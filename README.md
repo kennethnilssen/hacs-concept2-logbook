@@ -21,7 +21,7 @@ automation event. Read-only — it never writes anything back to your Concept2 a
 > manual acceptance test in the design doc (§6.3) has been confirmed against
 > a real Home Assistant instance and a real Concept2 account: the personal
 > access token config flow, a full history sync, real sensor/challenge data,
-> `concept2_new_result` firing correctly on a genuinely new workout with the
+> `concept2_new_result` firing correctly on a genuinely new result with the
 > correct payload, the [starter dashboard](docs/example-dashboard.yaml)
 > rendering cleanly, and reauthentication recovering correctly after a live
 > token revocation.
@@ -38,7 +38,7 @@ automation event. Read-only — it never writes anything back to your Concept2 a
   BikeErg — anything Concept2 tracks), and exposes them as Home Assistant sensors:
   last workout details, computed totals (today/week/month/season/lifetime), a
   workout streak, and current/upcoming Concept2 challenges. This is a regular
-  `GET` request on a timer, not a push/webhook from Concept2 - so after a workout,
+  `GET` request on a timer, not a push/webhook from Concept2 - so after a result,
   expect up to ~15 minutes before it shows up (or trigger it immediately yourself:
   **Settings → Devices & Services → Concept2 Logbook → ⋮ → Reload**).
 - Fires a `concept2_new_result` event when a genuinely new result appears, so you can
@@ -139,7 +139,7 @@ plain HACS search — you add it as a **custom repository** (steps below). See
 7. Generate a personal access token at
    **log.concept2.com → Profile → Edit Profile → Applications → Concept2 Logbook API**
    (see [Requirements](#requirements) above), then paste it into the setup form.
-8. You'll be asked whether to sync your full workout history now (accurate lifetime
+8. You'll be asked whether to sync the full history of your results now (accurate lifetime
    totals immediately, but slower on first setup) or start fresh from today (totals
    grow over time instead).
 
@@ -147,7 +147,7 @@ plain HACS search — you add it as a **custom repository** (steps below). See
 
 Go back to **log.concept2.com → Profile → Edit Profile → Applications** and revoke
 the token there at any time. Home Assistant will detect this on its next poll and
-prompt you to reauthenticate (paste a new token) rather than fail silently.
+prompt you to reauthenticate (paste a new token) instead of stopping silently.
 
 ### Manual (without HACS)
 
@@ -158,10 +158,10 @@ prompt you to reauthenticate (paste a new token) rather than fail silently.
 
 ## Known v1 limitations
 
-- Deleting a workout on Concept2's side isn't detected instantly — it's caught on a
+- Deleting a result on Concept2's side isn't detected instantly — it's caught on a
   periodic reconciliation (up to ~24h later), since Concept2's polling API has no
   "deleted items" feed (only its webhook does, which is out of scope for v1).
-- Workout dates are assumed to be in Home Assistant's local timezone (Concept2's API
+- Result dates are assumed to be in Home Assistant's local timezone (Concept2's API
   doesn't reliably return one).
 - Not yet submitted to the HACS default store — install as a custom repository (above).
 - The integration icon (`custom_components/concept2_logbook/brand/icon.png`) is a

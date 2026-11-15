@@ -44,7 +44,7 @@ decision D6 in the design doc).
   equivalent to it.
 - **Revocation:** users can revoke the token at any time from that same Concept2
   profile page; Home Assistant will then trigger its standard reauth flow on the
-  next failed poll.
+  next poll.
 - **Logging:** the token and e-mail addresses/other PII are never logged, printed,
   or committed. Diagnostics exports redact identifiers using Home Assistant's
   built-in redaction helper.
