@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="custom_components/concept2_logbook/brand/icon.png" width="96" height="96" alt="Concept2 Logbook icon (plain placeholder, not a designed logo)">
+  <img src="custom_components/concept2_logbook/brand/icon.png" width="96" height="96" alt="Concept2 Logbook icon">
 </p>
 
 # Concept2 Logbook — Home Assistant Integration
@@ -145,7 +145,6 @@ continue.
   Concept2 does not send a list of deleted results.
 - The integration treats the date of a result as the local time zone of Home Assistant.
   The Concept2 API does not give a reliable time zone.
-- The icon is a placeholder.
 
 ## Security
 
@@ -164,6 +163,11 @@ security-focused. See [CLAUDE.md](CLAUDE.md) for the working agreement and
 [concept2-ha-integration-design.md](concept2-ha-integration-design.md) for the design.
 See [CHANGELOG.md](CHANGELOG.md) for the changes and
 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the setup and the release process.
+
+## Not affiliated
+
+This project is not affiliated with or endorsed by Concept2 or by Nabu Casa (Home Assistant).
+The icon is a generic drawing and does not copy a logo of either.
 
 ## License
 
